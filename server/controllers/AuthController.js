@@ -2,7 +2,7 @@ import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-const maxAge = 10 * 24 * 60 * 60; // 3 days in seconds
+const maxAge = 10 * 24 * 60 * 60; // 10 days in seconds
 
 const createToken = (email, userId) => {
     return jwt.sign({ email, userId }, process.env.JWT_KEY, { expiresIn: maxAge });
