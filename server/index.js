@@ -21,6 +21,7 @@ app.use(cors({
     origin: process.env.ORIGIN || "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
+    optionsSuccessStatus: 200 // For legacy browser support
 }));
 
 app.use("/uploads/profiles", express.static("uploads/profiles"));

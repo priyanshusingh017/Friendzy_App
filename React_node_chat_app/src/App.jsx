@@ -31,14 +31,23 @@ const App = () => {
           setUserInfo(undefined);
         }
       } catch (error) {
-        setUserInfo(undefined);
-        console.log({ error });
+        // Only log out if it's an authentication error, not a network error
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          setUserInfo(undefined);
+        } else {
+          console.log("Network or server error:", error.message);
+          // You might want to show a toast notification here
+        }
       } finally {
         setLoading(false);
       }
     };
-    getUserData();
-    // eslint-disable-next-line
+    
+    if (!userInfo) {
+      getUserData();
+    } else {
+      setLoading(false);
+    }
   }, [setUserInfo]);
 
   if (loading) {
