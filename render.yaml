@@ -10,14 +10,11 @@ services:
       - key: NODE_VERSION
         value: 20
       - key: DATABASE_URL
-        sync: false           # set in Render dashboard
+        sync: false         # set in Render dashboard
       - key: JWT_KEY
-        sync: false           # set in Render dashboard
+        sync: false         # set in Render dashboard
       - key: ORIGIN
-        fromService:
-          type: static
-          name: friendzy-web
-          property: url
+        sync: false         # set to your frontend URL after the first deploy
     disks:
       - name: uploads
         mountPath: /opt/render/project/src/server/uploads
@@ -30,7 +27,4 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_SERVER_URL
-        fromService:
-          type: web
-          name: friendzy-api
-          property: url
+        sync: false         # set to your API URL after the first deploy
