@@ -71,13 +71,9 @@ const MessageBar = () => {
             
             socket.emit("sendChannelMessage", {
                 channelId: selectedChatData._id,
-                message: {
-                    sender: userInfo.id,
-                    content: message,
-                    messageType: "text",
-                    fileUrl: undefined,
-                },
-                optimisticId: tempId, // Send the optimistic ID to server for replacement
+                sender: userInfo._id,
+                content: message,
+                // ...other fields
             });
             setMessage("");
         }

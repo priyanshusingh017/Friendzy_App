@@ -2,6 +2,7 @@ import { ChartBar } from "lucide-react";
 import ChatHeader from "./components/chat-header";
 import MessageBar from "./components/message bar";
 import MessageContainer from "./components/message-container";
+import { useEffect } from "react";
 
 
 const ChatContainer = () => {

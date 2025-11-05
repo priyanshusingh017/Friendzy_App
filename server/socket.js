@@ -49,11 +49,24 @@ const setupSocket = (server) => {
 
     const sendChannelMessage = async (data) => {
         try {
-            const newMessage = new Message(data);
+            // Save to DB
+            const newMessage = new Message({
+                channelId: data.channelId,
+                sender: data.message.sender,
+                messageType: data.message.messageType,
+                fileUrl: data.message.fileUrl,
+                fileName: data.message.fileName,
+                fileType: data.message.fileType,
+                content: data.message.content,
+                timestamp: new Date(),
+            });
             await newMessage.save();
 
-            // Emit to all channel members
-            io.to(`channel-${data.channelId}`).emit("receiveChannelMessage", newMessage);
+            // Emit to all users in the channel room
+            io.to(`channel-${data.channelId}`).emit("receiveChannelMessage", {
+                ...newMessage.toObject(),
+                optimisticId: data.optimisticId, // so frontend can replace optimistic message
+            });
         } catch (error) {
             console.error("Error sending channel message:", error);
         }
@@ -79,10 +92,36 @@ const setupSocket = (server) => {
 
         socket.on("disconnect", () => disconnect(socket));
         socket.on("sendMessage", sendMessage);
-        socket.on("sendChannelMessage", sendChannelMessage);
 
+        // Join channel room when user opens a channel
         socket.on("joinChannel", (channelId) => {
-            socket.join(channelId);
+            socket.join(`channel-${channelId}`);
+        });
+
+        // Listen for channel messages from frontend
+        socket.on("sendChannelMessage", async (data) => {
+            try {
+                // Save to DB
+                const newMessage = new Message({
+                    channelId: data.channelId,
+                    sender: data.message.sender,
+                    messageType: data.message.messageType,
+                    fileUrl: data.message.fileUrl,
+                    fileName: data.message.fileName,
+                    fileType: data.message.fileType,
+                    content: data.message.content,
+                    timestamp: new Date(),
+                });
+                await newMessage.save();
+
+                // Emit to all users in the channel room
+                io.to(`channel-${data.channelId}`).emit("receiveChannelMessage", {
+                    ...newMessage.toObject(),
+                    optimisticId: data.optimisticId, // so frontend can replace optimistic message
+                });
+            } catch (error) {
+                console.error("Error sending channel message:", error);
+            }
         });
 
         socket.on("leaveChannel", (channelId) => {

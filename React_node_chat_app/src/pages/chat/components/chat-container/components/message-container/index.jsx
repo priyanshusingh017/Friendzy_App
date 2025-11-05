@@ -299,9 +299,17 @@ const MessageContainer = () => {
         };
 
         const handleReceiveChannelMessage = (message) => {
-            // Only add if it's for the current channel
             if (selectedChatType === "channel" && message.channelId === selectedChatData._id) {
-                setSelectedChatMessages([...selectedChatMessages, message]);
+                setSelectedChatMessages((prev) => {
+                    // Replace optimistic message if optimisticId matches
+                    if (message.optimisticId) {
+                        return prev.map(msg =>
+                            msg.optimisticId === message.optimisticId ? message : msg
+                        );
+                    }
+                    // Otherwise, add new message
+                    return [...prev, message];
+                });
             }
         };
 
@@ -313,6 +321,12 @@ const MessageContainer = () => {
             socket.off("receiveChannelMessage", handleReceiveChannelMessage);
         };
     }, [socket, selectedChatType, selectedChatData?._id, selectedChatMessages, setSelectedChatMessages]);
+
+    useEffect(() => {
+        if (selectedChatType === "channel" && selectedChatData?._id && socket) {
+            socket.emit("joinChannel", selectedChatData._id);
+        }
+    }, [selectedChatType, selectedChatData?._id, socket]);
 
     return (
         <div className="flex-1 overflow-y-auto scrollbar-hidden px-4 py-6 md:px-8 bg-gradient-to-b from-[#1a1b23] to-[#1f202a] md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">
