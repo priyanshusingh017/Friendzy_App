@@ -11,18 +11,44 @@ import channelRoutes from "./routes/ChannelRoutes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
-dotenv.config();
+// Only load .env in development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const app = express();
-const PORT = process.env.PORT || 8747; // ✅ Use Render's PORT
+const PORT = process.env.PORT || 8747;
 const DATABASE_URL = process.env.DATABASE_URL;
+
+// Allow multiple origins (production + preview URLs)
+const allowedOrigins = [
+  process.env.ORIGIN,
+  'https://friendzy-app.vercel.app',
+  /https:\/\/friendzy-.*\.vercel\.app$/ // Allow all Vercel preview URLs
+].filter(Boolean);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(
   cors({
-    origin: process.env.ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is allowed
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') return allowed === origin;
+        if (allowed instanceof RegExp) return allowed.test(origin);
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
