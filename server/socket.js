@@ -3,13 +3,29 @@ import Message from "./models/MessagesModel.js";
 import Channel from "./models/channelModel.js";
 
 const setupSocket = (server) => {
-    const io = new SocketIOServer(server, {
-        cors: {
-            origin: process.env.ORIGIN,
-            methods: ["GET", "POST"],
-            credentials: true,
-        },
-    });
+  const io = new Server(server, {
+    cors: {
+      origin: (origin, callback) => {
+        const allowedOrigins = [
+          process.env.ORIGIN,
+          'https://friendzy-app.vercel.app',
+          /https:\/\/friendzy-.*\.vercel\.app$/
+        ].filter(Boolean);
+
+        if (!origin) return callback(null, true);
+        
+        const isAllowed = allowedOrigins.some(allowed => {
+          if (typeof allowed === 'string') return allowed === origin;
+          if (allowed instanceof RegExp) return allowed.test(origin);
+          return false;
+        });
+        
+        callback(null, isAllowed);
+      },
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+  });
 
     const userSocketMap = new Map();
 

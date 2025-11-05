@@ -1,17 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import cookieParser from "cookie-parser";
-import mongoose from "mongoose";
-import authRoutes from "./routes/AuthRoutes.js";
-import contactsRoutes from "./routes/ContactRoutes.js";
-import setupSocket from "./socket.js";
-import messagesRoutes from "./routes/MessageRoutes.js";
-import channelRoutes from "./routes/ChannelRoutes.js";
-import path from "path";
-import { fileURLToPath } from "url";
 
-// Only load .env in development
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
@@ -20,23 +10,18 @@ const app = express();
 const PORT = process.env.PORT || 8747;
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// Allow multiple origins (production + preview URLs)
+// Allow multiple origins (production + all Vercel preview URLs)
 const allowedOrigins = [
   process.env.ORIGIN,
   'https://friendzy-app.vercel.app',
-  /https:\/\/friendzy-.*\.vercel\.app$/ // Allow all Vercel preview URLs
+  /https:\/\/friendzy-.*\.vercel\.app$/  // Matches all Vercel preview URLs
 ].filter(Boolean);
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // Allow requests with no origin (mobile apps, curl)
       
-      // Check if origin is allowed
       const isAllowed = allowedOrigins.some(allowed => {
         if (typeof allowed === 'string') return allowed === origin;
         if (allowed instanceof RegExp) return allowed.test(origin);
@@ -46,6 +31,7 @@ app.use(
       if (isAllowed) {
         callback(null, true);
       } else {
+        console.log('CORS blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
