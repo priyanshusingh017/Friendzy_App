@@ -7,9 +7,7 @@ import { useAppStore } from "@/store";
 import ContactList from "@/components/ui/contact-list";
 import ChannelList from "@/components/ui/channel-list";
 import CreateChannel from "./components/create-channel";
-import friendzyLogo from "../../../assets/friendzy.png"; // ✅ FIXED PATH
-
-
+// REMOVED: import friendzyLogo from "../../../assets/friendzy.png";
 
 const ContactContainer = () => {
     const { directMessageContacts, setDirectMessageContacts, channels, setChannels } = useAppStore();
@@ -78,15 +76,12 @@ const ContactContainer = () => {
     );
 };
 
-export default ContactContainer;
-
+// NEW LOGO COMPONENT - NO FILE IMPORT NEEDED
 const Logo = () => (
     <div className="flex p-5 justify-start items-center gap-2">
-        <img
-            src={friendzyLogo}
-            alt="Friendzy Logo"
-            className="h-12 w-12"
-        />
+        <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-lg">FZ</span>
+        </div>
         <span className="text-3xl font-semibold text-white">Friendzy</span>
     </div>
 );
@@ -98,3 +93,5 @@ function Title({ text }) {
         </h6>
     );
 }
+
+export default ContactContainer;
