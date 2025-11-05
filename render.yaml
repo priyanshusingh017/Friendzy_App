@@ -2,25 +2,35 @@ services:
   - type: web
     name: friendzy-api
     env: node
-    plan: free
     rootDir: server
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: 20
       - key: DATABASE_URL
-        value: mongodb+srv://friendzy_user:KOT3ITnsydy0sTHi@friendzy.wuosvub.mongodb.net/friendzy?retryWrites=true&w=majority&appName=Friendzy
+        sync: false           # set in Render dashboard
       - key: JWT_KEY
-        value: "(^(&()^(&^*&^@()&@!LNASLBKJASBN!123123123@#@@#)))"
+        sync: false           # set in Render dashboard
       - key: ORIGIN
-        value: https://friendzy-web.onrender.com
+        fromService:
+          type: static
+          name: friendzy-web
+          property: url
+    disks:
+      - name: uploads
+        mountPath: /opt/render/project/src/server/uploads
+        sizeGB: 2
 
-  - type: web
+  - type: static
     name: friendzy-web
-    env: static
-    plan: free
     rootDir: React_node_chat_app
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_SERVER_URL
-        value: https://friendzy-api.onrender.com
+        fromService:
+          type: web
+          name: friendzy-api
+          property: url
