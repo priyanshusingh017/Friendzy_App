@@ -2,10 +2,10 @@ services:
   - type: web
     name: friendzy-api
     env: node
+    plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         value: mongodb+srv://friendzy_user:KOT3ITnsydy0sTHi@friendzy.wuosvub.mongodb.net/friendzy?retryWrites=true&w=majority&appName=Friendzy
@@ -17,6 +17,7 @@ services:
   - type: web
     name: friendzy-web
     env: static
+    plan: free
     rootDir: React_node_chat_app
     buildCommand: npm install && npm run build
     staticPublishPath: dist
