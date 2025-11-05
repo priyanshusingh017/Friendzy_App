@@ -15,7 +15,7 @@ services:
         sync: false          # set in Render after creation
       - key: ORIGIN
         fromService:
-          type: static_site  # will be the frontend URL
+          type: static  # will be the frontend URL
           name: friendzy-web
           property: url
     disks:
@@ -23,7 +23,7 @@ services:
         mountPath: /opt/render/project/src/server/uploads
         sizeGB: 2
 
-  - type: static_site
+  - type: static
     name: friendzy-web
     rootDir: React_node_chat_app
     buildCommand: npm ci && npm run build
