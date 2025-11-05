@@ -6,6 +6,7 @@ services:
     rootDir: server
     buildCommand: npm ci
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: 20
@@ -14,13 +15,13 @@ services:
       - key: JWT_KEY
         sync: false
       - key: ORIGIN
-        sync: false
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/server/uploads
-      sizeGB: 2
+        sync: false   # set to your frontend URL after first deploy
+    disks:
+      - name: uploads
+        mountPath: /opt/render/project/src/server/uploads
+        sizeGB: 2
 
-  - type: static
+  - type: static_site
     name: friendzy-web
     rootDir: React_node_chat_app
     buildCommand: npm ci && npm run build
@@ -30,5 +31,4 @@ services:
         fromService:
           type: web
           name: friendzy-api
-          property: host
-          # After first deploy, set to https://<api>.onrender.com
+          property: url
