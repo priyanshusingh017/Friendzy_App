@@ -1,4 +1,3 @@
-
 export const HOST = import.meta.env.VITE_SERVER_URL;
 
 export const AUTH_ROUTES = `${HOST}/api/auth`;
@@ -17,8 +16,8 @@ export const SEARCH_CONTACTS_ROUTES = `${CONTACT_ROUTES}/search`;
 export const GET_DM_CONTACTS_ROUTES = `${CONTACT_ROUTES}/get-contacts-for-dm`; 
 export const GET_ALL_CONTACTS_ROUTE = `${CONTACT_ROUTES}/all`;  
 
-export const MESSAGE_ROUTES = `${HOST}/api/message`;
-export const GET_ALL_MESSAGES_ROUTE = `${MESSAGE_ROUTES}/get-message`;
+export const MESSAGE_ROUTES = `${HOST}/api/messages`;
+export const GET_ALL_MESSAGES_ROUTE = "/api/messages/get-message";
 export const UPLOAD_FILE_ROUTE = `${MESSAGE_ROUTES}/upload-file`;
 export const UPLOAD_CHANNEL_FILE_ROUTE = `${MESSAGE_ROUTES}/upload-channel-file`;
 export const SEND_MESSAGE_ROUTE = "/api/messages/send";

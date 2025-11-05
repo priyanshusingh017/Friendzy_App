@@ -104,11 +104,9 @@ const MessageBar = () => {
 
         try {
             setUploading(true);
-            const response = await apiClient.post(uploadUrl, formData, {
+            const response = await apiClient.post("/api/messages/upload-file", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
                 withCredentials: true,
-                onUploadProgress: (data) => {
-                    setFileUploadingprogress(Math.round((100 * data.loaded) / data.total));
-                }
             });
             setUploading(false);
             setFileUploadingprogress(0);

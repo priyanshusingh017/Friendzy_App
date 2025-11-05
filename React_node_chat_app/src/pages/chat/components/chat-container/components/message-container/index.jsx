@@ -31,7 +31,7 @@ const MessageContainer = () => {
                 let response;
                 if (selectedChatType === "contact") {
                     response = await apiClient.post(
-                        GET_ALL_MESSAGES_ROUTE,
+                        "/api/messages/get-message",
                         { id: selectedChatData._id },
                         { withCredentials: true }
                     );
@@ -285,6 +285,34 @@ const MessageContainer = () => {
         // Uncomment the line below to debug message duplicates
         // logMessages();
     }, [selectedChatMessages]);
+
+    // Add this useEffect to handle real-time messages
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleReceiveMessage = (message) => {
+            // Only add if it's for the current chat
+            if (selectedChatType === "contact" && 
+                (message.recipient === selectedChatData._id || message.sender === selectedChatData._id)) {
+                setSelectedChatMessages([...selectedChatMessages, message]);
+            }
+        };
+
+        const handleReceiveChannelMessage = (message) => {
+            // Only add if it's for the current channel
+            if (selectedChatType === "channel" && message.channelId === selectedChatData._id) {
+                setSelectedChatMessages([...selectedChatMessages, message]);
+            }
+        };
+
+        socket.on("receiveMessage", handleReceiveMessage);
+        socket.on("receiveChannelMessage", handleReceiveChannelMessage);
+
+        return () => {
+            socket.off("receiveMessage", handleReceiveMessage);
+            socket.off("receiveChannelMessage", handleReceiveChannelMessage);
+        };
+    }, [socket, selectedChatType, selectedChatData?._id, selectedChatMessages, setSelectedChatMessages]);
 
     return (
         <div className="flex-1 overflow-y-auto scrollbar-hidden px-4 py-6 md:px-8 bg-gradient-to-b from-[#1a1b23] to-[#1f202a] md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">

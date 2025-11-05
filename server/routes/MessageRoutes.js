@@ -1,9 +1,9 @@
 import { Router } from "express";
 import multer from "multer";
-import fs from "fs";
 import path from "path";
-import { verifyToken } from "../middlewares/AuthMiddle.js";
+import fs from "fs";
 import { getMessages, uploadFile, uploadChannelFile } from "../controllers/MessageController.js";
+import { verifyToken } from "../middlewares/AuthMiddle.js";
 
 const messageRoutes = Router();
 
@@ -19,24 +19,13 @@ try {
 }
 
 // Updated file filter to allow more image types and other files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
 const upload = multer({
-    dest: uploadDir,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
-    fileFilter: (req, file, cb) => {
-        // Allow images, documents, and other common file types
-        const allowedTypes = [
-            "image/jpeg", "image/jpg", "image/png", "image/gif", 
-            "image/webp", "image/svg+xml", "image/bmp",
-            "application/pdf", "application/msword", 
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "text/plain", "application/zip"
-        ];
-        
-        if (!allowedTypes.includes(file.mimetype)) {
-            return cb(new Error("Invalid file type. Please upload a valid file."));
-        }
-        cb(null, true);
-    },
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB
 });
 
 // Get messages for a conversation
