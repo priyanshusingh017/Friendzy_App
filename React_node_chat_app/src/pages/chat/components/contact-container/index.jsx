@@ -7,7 +7,9 @@ import { useAppStore } from "@/store";
 import ContactList from "@/components/ui/contact-list";
 import ChannelList from "@/components/ui/channel-list";
 import CreateChannel from "./components/create-channel";
-import friendzyLogo from "../../../../assets/friendzy.png";
+import friendzyLogo from "../../../assets/friendzy.png"; // ✅ FIXED PATH
+
+
 
 const ContactContainer = () => {
     const { directMessageContacts, setDirectMessageContacts, channels, setChannels } = useAppStore();
