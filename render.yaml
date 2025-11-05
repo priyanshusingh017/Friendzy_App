@@ -14,17 +14,23 @@ services:
       - key: JWT_KEY
         sync: false          # set in Render after creation
       - key: ORIGIN
-        sync: false          # set to your frontend URL after deployment
+        fromService:
+          type: static_site  # will be the frontend URL
+          name: friendzy-web
+          property: url
     disks:
       - name: uploads
         mountPath: /opt/render/project/src/server/uploads
         sizeGB: 2
 
-  - type: static
+  - type: static_site
     name: friendzy-web
     rootDir: React_node_chat_app
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_SERVER_URL
-        sync: false          # set to your API URL after deployment
+        fromService:
+          type: web
+          name: friendzy-api
+          property: url
