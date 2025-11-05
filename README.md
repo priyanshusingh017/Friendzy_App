@@ -2,18 +2,48 @@
 
 A modern, full-stack real-time chat application built with React, Node.js, Express, and Socket.IO. Friendzy allows users to engage in real-time messaging, create channels, and manage their profiles in a sleek, responsive interface.
 
+## 📸 Screenshots
+
+### Login Page
+![Login Page](./Screenshot/login.jpg)
+
+### Profile Creation
+![Profile Creation](./Screenshot/profile_creation.jpg)
+
+### Main Page
+![Main Page](./Screenshot/Main_page.jpg)
+
+### Contact Details
+![Contact Details](./Screenshot/contact_details.jpg)
+
+### Channel Management
+![Channel Interface](./Screenshot/channel.jpg)
+
+### Chat Interface
+<div align="center">
+  <img src="./Screenshot/chat1.jpg" alt="Chat Interface 1" width="45%">
+  <img src="./Screenshot/chat2.jpg" alt="Chat Interface 2" width="45%">
+</div>
+<div align="center">
+  <img src="./Screenshot/chat3.jpg" alt="Chat Interface 3" width="45%">
+  <img src="./Screenshot/chat4.jpg" alt="Chat Interface 4" width="45%">
+</div>
+<div align="center">
+  <img src="./Screenshot/chat5.jpg" alt="Chat Interface 5" width="45%">
+</div>
+
 ## 🚀 Features
 
-- **Real-time messaging** with Socket.IO
-- **User authentication** with JWT tokens
-- **Direct messaging** between users
-- **Channel creation** and management
-- **File sharing** and image uploads
-- **Profile customization** with avatar support
-- **Responsive design** with modern UI/UX
-- **Message history** and persistence
-- **Online status** indicators
-- **Animated UI elements** with Lottie animations
+- ⚡ **Real-time messaging** with Socket.IO
+- 🔐 **User authentication** with JWT tokens
+- 💬 **Direct messaging** between users
+- 📢 **Channel creation** and management
+- 📎 **File sharing** and image uploads
+- 👤 **Profile customization** with avatar support
+- 📱 **Responsive design** with modern UI/UX
+- 📜 **Message history** and persistence
+- 🟢 **Online status** indicators
+- 🎨 **Animated UI elements** with Lottie animations
 
 ## 🛠 Tech Stack
 
@@ -82,54 +112,52 @@ Chat Application/
    cd "Chat Application"
    ```
 
-2. **Install dependencies**
+2. **Install backend dependencies**
    ```bash
-   # Install root dependencies (if any)
-   npm install
-   
-   # Install backend dependencies
    cd server
    npm install
-   
-   # Install frontend dependencies
+   ```
+
+3. **Install frontend dependencies**
+   ```bash
    cd ../React_node_chat_app
    npm install
    ```
 
-3. **Environment Configuration**
+4. **Environment Configuration**
 
    Create `.env` files in both `server/` and `React_node_chat_app/` directories:
 
-   **Backend (.env)**
+   **Backend (server/.env)**
    ```env
    PORT=8747
    DATABASE_URL=your_mongodb_connection_string
    JWT_KEY=your_jwt_secret_key
    ORIGIN=http://localhost:5173
+   NODE_ENV=development
    ```
 
-   **Frontend (.env)**
+   **Frontend (React_node_chat_app/.env)**
    ```env
    VITE_SERVER_URL=http://localhost:8747
    ```
 
-4. **Start the development servers**
+5. **Start the development servers**
 
-   **Backend server:**
+   **Terminal 1 - Backend server:**
    ```bash
    cd server
    npm run dev
-   # or
-   npm start
    ```
 
-   **Frontend application:**
+   **Terminal 2 - Frontend application:**
    ```bash
    cd React_node_chat_app
    npm run dev
    ```
 
-5. **Open your browser**
+6. **Open your browser**
+   
    Navigate to `http://localhost:5173` to access the application.
 
 ## 🎯 Usage
@@ -153,10 +181,10 @@ Chat Application/
 ### Messages
 - `GET /api/messages/:userId` - Get messages with a user
 - `POST /api/messages` - Send a message
-- `GET /api/messages/upload-file` - Upload file
+- `POST /api/messages/upload-file` - Upload file
 
 ### Contacts
-- `GET /api/contacts/search` - Search for contacts
+- `POST /api/contacts/search` - Search for contacts
 - `GET /api/contacts/get-contacts-for-dm` - Get DM contacts
 - `GET /api/contacts/get-all-contacts` - Get all contacts
 
@@ -169,37 +197,52 @@ Chat Application/
 
 The application uses Socket.IO for real-time communication:
 
-- `sendMessage` - Send a message
-- `receiveMessage` - Receive a message
-- `joinChannel` - Join a channel
-- `leaveChannel` - Leave a channel
-- `userOnline` - User comes online
-- `userOffline` - User goes offline
+- `sendMessage` - Send a message to a user or channel
+- `receiveMessage` - Receive a message in real-time
+- `receiveChannelMessage` - Receive channel message
+- Connection events for user presence tracking
 
 ## 🎨 UI Components
 
 Built with modern, accessible components using:
-- **Radix UI** for base components
-- **Tailwind CSS** for styling
+- **Radix UI** for base components (Dialog, Tooltip, Avatar, etc.)
+- **Tailwind CSS** for utility-first styling
 - **Custom animations** with Lottie
 - **Responsive design** for mobile and desktop
+- **Dark theme** with modern color palette
 
 ## 🚀 Deployment
 
-### Frontend (Vercel/Netlify)
-1. Build the frontend: `npm run build`
-2. Deploy the `dist` folder to your hosting platform
-3. Set environment variables in your hosting platform
+### Frontend (Vercel)
+1. Build the frontend:
+   ```bash
+   cd React_node_chat_app
+   npm run build
+   ```
+2. Deploy to Vercel or connect your GitHub repository
+3. Set environment variables:
+   - `VITE_SERVER_URL` - Your backend URL
 
-### Backend (Heroku/Railway/Render)
+### Backend (Render/Railway)
 1. Deploy the `server` folder
-2. Set environment variables
-3. Ensure MongoDB database is accessible
+2. Set environment variables:
+   - `DATABASE_URL` - MongoDB connection string
+   - `JWT_KEY` - JWT secret key
+   - `ORIGIN` - Frontend URL (e.g., https://friendzy-app.vercel.app)
+   - `PORT` - Port number (default: 8747)
+   - `NODE_ENV` - Set to `production`
 
-### Environment Variables for Production
-Update the URLs in your production environment variables to match your deployed services.
+## 🔐 Security
+
+- JWT-based authentication
+- Password hashing with bcrypt
+- CORS protection
+- Input validation and sanitization
+- Secure file upload handling
 
 ## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/new-feature`
@@ -218,11 +261,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - React team for the amazing framework
-- Socket.IO for real-time communication
+- Socket.IO for real-time communication capabilities
 - Tailwind CSS for the utility-first approach
-- Radix UI for accessible components
-- MongoDB team for the database solution
+- Radix UI for accessible component primitives
+- MongoDB team for the excellent database solution
+- The open-source community for inspiration and tools
 
 ---
 
-**Friendzy** - Where conversations come alive! 💬✨
+<div align="center">
+  <strong>Friendzy</strong> - Where conversations come alive! 💬✨
+  <br><br>
+  Made with ❤️ by Priyanshu Singh
+</div>
