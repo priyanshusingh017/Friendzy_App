@@ -7,7 +7,7 @@ import { useAppStore } from "@/store";
 import ContactList from "@/components/ui/contact-list";
 import ChannelList from "@/components/ui/channel-list";
 import CreateChannel from "./components/create-channel";
-import friendzyLogo from '@/assets/friendzy.png';
+import friendzyLogo from "@/assets/friendzy.png";
 
 const ContactContainer = () => {
     const { directMessageContacts, setDirectMessageContacts, channels, setChannels } = useAppStore();
@@ -79,23 +79,19 @@ const ContactContainer = () => {
 export default ContactContainer;
 
 const Logo = () => (
-    <div className="flex p-5 justify-start items-center gap-2" aria-label="App Logo">
+    <div className="flex p-5 justify-start items-center gap-2">
         <img
             src={friendzyLogo}
             alt="Friendzy Logo"
-            className="h-10 w-10 rounded-full"
-            style={{ objectFit: 'cover' }}
+            className="h-12 w-12"
         />
-        <span className="text-3xl font-semibold">Friendzy</span>
+        <span className="text-3xl font-semibold text-white">Friendzy</span>
     </div>
 );
 
 function Title({ text }) {
     return (
-        <h6
-            className="uppercase tracking-widest text-neutral-400 pl-10 font-light text-opacity-90 text-sm"
-            aria-label={text}
-        >
+        <h6 className="uppercase tracking-widest text-neutral-400 pl-10 font-light text-opacity-90 text-sm">
             {text}
         </h6>
     );
