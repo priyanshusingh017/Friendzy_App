@@ -14,13 +14,13 @@ services:
       - key: JWT_KEY
         sync: false
       - key: ORIGIN
-        sync: false
+        sync: false   # set to your frontend URL after first deploy
     disks:
       - name: uploads
         mountPath: /opt/render/project/src/server/uploads
         sizeGB: 2
 
-  - type: static_site
+  - type: static
     name: friendzy-web
     rootDir: React_node_chat_app
     buildCommand: npm ci && npm run build
@@ -30,4 +30,4 @@ services:
         fromService:
           type: web
           name: friendzy-api
-          property: url
+          property: url   # gives https://<service>.onrender.com
