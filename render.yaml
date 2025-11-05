@@ -10,11 +10,11 @@ services:
       - key: NODE_VERSION
         value: 20
       - key: DATABASE_URL
-        sync: false         # set in Render dashboard
+        sync: false          # set in Render after creation
       - key: JWT_KEY
-        sync: false         # set in Render dashboard
+        sync: false          # set in Render after creation
       - key: ORIGIN
-        sync: false         # set to your frontend URL after the first deploy
+        sync: false          # set to your frontend URL after deployment
     disks:
       - name: uploads
         mountPath: /opt/render/project/src/server/uploads
@@ -27,4 +27,4 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_SERVER_URL
-        sync: false         # set to your API URL after the first deploy
+        sync: false          # set to your API URL after deployment
