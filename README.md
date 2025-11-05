@@ -228,7 +228,7 @@ Built with modern, accessible components using:
 2. Set environment variables:
    - `DATABASE_URL` - MongoDB connection string
    - `JWT_KEY` - JWT secret key
-   - `ORIGIN` - Frontend URL (e.g., https://friendzy-app.vercel.app)
+   - `ORIGIN` - Frontend URL
    - `PORT` - Port number (default: 8747)
    - `NODE_ENV` - Set to `production`
 
