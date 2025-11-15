@@ -519,7 +519,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Priyanshu Singh**
 - GitHub: [@priyanshusingh017](https://github.com/priyanshusingh017)
 - LinkedIn: [LinkedIn](https://www.linkedin.com/in/priyanshu-singh-00s7)
-- Email: your.email@example.com
 
 ## 🙏 Acknowledgments
 
