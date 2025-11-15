@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import Channel from "../models/channelModel.js";
 import User from "../models/userModel.js";
-import { getGridFSBucket } from "../config/gridfs.js";
 import { Readable } from "stream";
+import { getGridFSBucket } from "../config/gridfs.js";
 
 /**
  * Create a new channel
@@ -280,40 +280,77 @@ export const addMembersToChannel = async (request, response, next) => {
     const { members } = request.body;
     const userId = request.userId;
 
+    console.log("📝 Add members request:", { channelId, members, userId });
+
+    if (!mongoose.Types.ObjectId.isValid(channelId)) {
+      return response.status(400).send("Invalid channel ID.");
+    }
+
+    if (!members || !Array.isArray(members) || members.length === 0) {
+      return response.status(400).send("Members array is required.");
+    }
+
     const channel = await Channel.findById(channelId);
 
     if (!channel) {
       return response.status(404).send("Channel not found.");
     }
 
+    // Check if user is admin
     if (channel.admin.toString() !== userId) {
       return response.status(403).send("You are not authorized to add members to this channel.");
     }
 
+    // Validate all members exist
     const validMembers = await User.find({ _id: { $in: members } });
-
     if (validMembers.length !== members.length) {
       return response.status(400).send("Some members are not valid users.");
     }
 
-    channel.members = [...new Set([...channel.members, ...members])];
+    // Filter out members who are already in the channel
+    const newMembers = members.filter(
+      (memberId) => !channel.members.some((m) => m.toString() === memberId)
+    );
+
+    if (newMembers.length === 0) {
+      return response.status(400).send("All users are already members of this channel.");
+    }
+
+    // Add new members
+    channel.members.push(...newMembers);
     await channel.save();
 
-    return response.status(200).json({ channel });
+    console.log("✅ Members added successfully:", newMembers);
+
+    // Populate and return updated channel
+    const updatedChannel = await Channel.findById(channelId)
+      .populate("members", "firstName lastName email _id image color")
+      .populate("admin", "firstName lastName email _id image color");
+
+    return response.status(200).json({
+      success: true,
+      channel: updatedChannel,
+      addedMembers: newMembers,
+    });
   } catch (error) {
-    console.log({ error });
+    console.error("❌ Add members error:", error);
     return response.status(500).send("Internal Server Error");
   }
 };
 
 /**
- * Remove members from channel (admin only)
+ * Remove member from channel (admin only)
  */
 export const removeMemberFromChannel = async (request, response, next) => {
   try {
-    const { channelId } = request.params;
-    const { memberId } = request.body;
+    const { channelId, memberId } = request.params;
     const userId = request.userId;
+
+    console.log("📝 Remove member request:", { channelId, memberId, userId });
+
+    if (!mongoose.Types.ObjectId.isValid(channelId) || !mongoose.Types.ObjectId.isValid(memberId)) {
+      return response.status(400).send("Invalid ID.");
+    }
 
     const channel = await Channel.findById(channelId);
 
@@ -321,18 +358,40 @@ export const removeMemberFromChannel = async (request, response, next) => {
       return response.status(404).send("Channel not found.");
     }
 
+    // Check if user is admin
     if (channel.admin.toString() !== userId) {
       return response.status(403).send("You are not authorized to remove members from this channel.");
     }
 
-    channel.members = channel.members.filter(
-      (member) => member.toString() !== memberId
-    );
+    // Cannot remove admin
+    if (channel.admin.toString() === memberId) {
+      return response.status(400).send("Cannot remove channel admin.");
+    }
+
+    // Check if member exists in channel
+    const memberIndex = channel.members.findIndex((m) => m.toString() === memberId);
+    if (memberIndex === -1) {
+      return response.status(400).send("User is not a member of this channel.");
+    }
+
+    // Remove member
+    channel.members.splice(memberIndex, 1);
     await channel.save();
 
-    return response.status(200).json({ channel });
+    console.log("✅ Member removed successfully:", memberId);
+
+    // Populate and return updated channel
+    const updatedChannel = await Channel.findById(channelId)
+      .populate("members", "firstName lastName email _id image color")
+      .populate("admin", "firstName lastName email _id image color");
+
+    return response.status(200).json({
+      success: true,
+      channel: updatedChannel,
+      removedMemberId: memberId,
+    });
   } catch (error) {
-    console.log({ error });
+    console.error("❌ Remove member error:", error);
     return response.status(500).send("Internal Server Error");
   }
 };

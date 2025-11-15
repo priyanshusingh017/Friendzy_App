@@ -1,6 +1,6 @@
 import { Router } from "express";
-import multer from "multer";
 import { verifyToken } from "../middlewares/AuthMiddle.js";
+import multer from "multer";
 import {
   createChannel,
   getUserChannels,
@@ -28,19 +28,19 @@ channelRoutes.post("/create-channel", verifyToken, createChannel);
 // Get all channels where user is a member
 channelRoutes.get("/get-user-channel", verifyToken, getUserChannels);
 
-// Get messages for a specific channel
+// Get channel messages
 channelRoutes.get("/get-channel-messages/:channelId", verifyToken, getChannelMessages);
 
-// ✅ Update channel - accept single image file + text fields
-channelRoutes.put("/:channelId", verifyToken, upload.single('image'), updateChannel);
+// Update channel (admin only)
+channelRoutes.patch("/update-channel/:channelId", verifyToken, upload.single("image"), updateChannel);
 
-// Delete channel
-channelRoutes.delete("/:channelId", verifyToken, deleteChannel);
+// Delete channel (admin only)
+channelRoutes.delete("/delete-channel/:channelId", verifyToken, deleteChannel);
 
-// Add members to channel
-channelRoutes.post("/:channelId/add-members", verifyToken, addMembersToChannel);
+// ✅ Add members to channel (admin only)
+channelRoutes.post("/:channelId/members", verifyToken, addMembersToChannel);
 
-// Remove member from channel
-channelRoutes.delete("/:channelId/remove-member", verifyToken, removeMemberFromChannel);
+// ✅ Remove member from channel (admin only)
+channelRoutes.delete("/:channelId/members/:memberId", verifyToken, removeMemberFromChannel);
 
 export default channelRoutes;
