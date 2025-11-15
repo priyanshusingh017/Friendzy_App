@@ -1,6 +1,14 @@
 # Friendzy - Real-Time Chat Application
 
-A modern, full-stack real-time chat application built with React, Node.js, Express, and Socket.IO. Friendzy allows users to engage in real-time messaging, create channels, and manage their profiles in a sleek, responsive interface.
+A modern, full-stack real-time chat application built with React, Node.js, Express, MongoDB, and Socket.IO. Friendzy enables users to engage in seamless real-time messaging, create group channels, share files, and manage their profiles—all within a sleek, responsive interface.
+
+## ✨ Key Highlights
+
+- 🚀 **Production-Ready** - Fully deployable with secure authentication and data storage
+- ⚡ **Real-Time** - Instant messaging powered by Socket.IO
+- 📁 **GridFS Storage** - Efficient file and image management with MongoDB GridFS
+- 🎨 **Modern UI** - Beautiful, responsive design with Tailwind CSS and Radix UI
+- 🔐 **Secure** - JWT authentication, bcrypt password hashing, and CORS protection
 
 ## 📸 Screenshots
 
@@ -34,40 +42,53 @@ A modern, full-stack real-time chat application built with React, Node.js, Expre
 
 ## 🚀 Features
 
-- ⚡ **Real-time messaging** with Socket.IO
-- 🔐 **User authentication** with JWT tokens
-- 💬 **Direct messaging** between users
-- 📢 **Channel creation** and management
-- 📎 **File sharing** and image uploads
-- 👤 **Profile customization** with avatar support
-- 📱 **Responsive design** with modern UI/UX
-- 📜 **Message history** and persistence
-- 🟢 **Online status** indicators
-- 🎨 **Animated UI elements** with Lottie animations
+### Core Functionality
+- ⚡ **Real-time messaging** with Socket.IO - Instant message delivery
+- 🔐 **Secure authentication** - JWT-based user authentication with HTTP-only cookies
+- 💬 **Direct messaging** - Private one-on-one conversations
+- 📢 **Channel system** - Create and manage group channels
+- 👥 **Channel administration** - Admin controls for channel management
+- 📎 **File sharing** - Upload and share images and documents
+- 🖼️ **Profile & Channel Images** - Custom avatars and channel icons stored in GridFS
+- 📜 **Message persistence** - Complete message history stored in MongoDB
+- 🟢 **Online status** - Real-time user presence indicators
+- 🔍 **Contact search** - Find and connect with other users
+
+### User Experience
+- 📱 **Fully responsive** - Optimized for mobile, tablet, and desktop
+- 🎨 **Modern dark theme** - Eye-friendly dark mode interface
+- ✨ **Smooth animations** - Lottie animations for enhanced UX
+- 🎯 **Intuitive UI** - Clean and user-friendly design
+- ⚡ **Fast performance** - Optimized build with Vite
 
 ## 🛠 Tech Stack
 
 ### Frontend
-- **React 19** - UI framework
-- **Vite** - Build tool and dev server
+- **React 19** - Modern UI framework with latest features
+- **Vite** - Lightning-fast build tool and dev server
 - **Tailwind CSS** - Utility-first CSS framework
-- **Radix UI** - Accessible component primitives
-- **Socket.IO Client** - Real-time communication
-- **Axios** - HTTP client
-- **Zustand** - State management
-- **React Router** - Client-side routing
-- **Lottie React** - Animations
+- **Radix UI** - Accessible, unstyled component primitives
+- **Socket.IO Client** - Real-time bidirectional communication
+- **Axios** - Promise-based HTTP client
+- **Zustand** - Lightweight state management
+- **React Router v6** - Declarative routing for React
+- **Lottie React** - High-quality animations
+- **Emoji Picker React** - Emoji support in messages
+- **Moment.js** - Date and time formatting
 
 ### Backend
-- **Node.js** - Runtime environment
-- **Express.js** - Web framework
-- **Socket.IO** - Real-time bidirectional communication
-- **MongoDB** - Database
-- **Mongoose** - MongoDB ODM
-- **JWT** - Authentication
-- **Bcrypt** - Password hashing
-- **Multer** - File upload handling
-- **CORS** - Cross-origin resource sharing
+- **Node.js (v18+)** - JavaScript runtime environment
+- **Express.js** - Minimal and flexible web framework
+- **Socket.IO** - Real-time event-based communication
+- **MongoDB** - NoSQL document database
+- **Mongoose** - Elegant MongoDB object modeling
+- **GridFS** - File storage system for MongoDB
+- **JWT** - JSON Web Token authentication
+- **Bcrypt** - Password hashing and security
+- **Multer** - Multipart/form-data file upload handling
+- **CORS** - Cross-Origin Resource Sharing middleware
+- **Cookie-Parser** - Parse HTTP cookies
+- **Dotenv** - Environment variable management
 
 ## 📁 Project Structure
 
@@ -76,39 +97,66 @@ Chat Application/
 ├── React_node_chat_app/          # Frontend React application
 │   ├── src/
 │   │   ├── components/           # Reusable UI components
+│   │   │   └── ui/              # Radix UI components
 │   │   ├── pages/               # Application pages
-│   │   │   ├── auth/            # Authentication pages
-│   │   │   ├── chat/            # Chat interface
-│   │   │   └── profile/         # User profile
-│   │   ├── store/               # State management
-│   │   ├── lib/                 # Utility functions
-│   │   ├── context/             # React contexts
-│   │   └── assets/              # Static assets
+│   │   │   ├── auth/            # Authentication (Login, Signup)
+│   │   │   ├── chat/            # Chat interface components
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── chat-container/
+│   │   │   │   │   ├── contact-container/
+│   │   │   │   │   ├── empty-chat-container/
+│   │   │   │   │   └── channel-details/
+│   │   │   └── profile/         # User profile management
+│   │   ├── store/               # Zustand state management
+│   │   ├── lib/                 # Utility functions and helpers
+│   │   ├── context/             # React Context providers
+│   │   ├── utils/               # Constants and helper functions
+│   │   └── assets/              # Static assets (images, animations)
+│   ├── public/                  # Public static files
+│   ├── .env                     # Environment variables
 │   ├── package.json
-│   └── vite.config.js
+│   ├── vite.config.js
+│   └── tailwind.config.js
 ├── server/                       # Backend Node.js application
 │   ├── controllers/             # Route controllers
-│   ├── models/                  # Database models
+│   │   ├── AuthController.js    # Authentication logic
+│   │   ├── MessageController.js # Message handling
+│   │   ├── ContactController.js # Contact management
+│   │   └── ChannelController.js # Channel operations
+│   ├── models/                  # Mongoose schemas
+│   │   ├── userModel.js         # User schema
+│   │   ├── MessagesModel.js     # Message schema
+│   │   └── channelModel.js      # Channel schema
 │   ├── routes/                  # API routes
+│   │   ├── AuthRoutes.js        # Auth endpoints
+│   │   ├── MessageRoutes.js     # Message endpoints
+│   │   ├── ContactRoutes.js     # Contact endpoints
+│   │   └── ChannelRoutes.js     # Channel endpoints
 │   ├── middlewares/             # Custom middlewares
-│   ├── uploads/                 # File storage
+│   │   └── AuthMiddle.js        # JWT verification
+│   ├── config/                  # Configuration files
+│   │   └── gridfs.js            # GridFS setup
+│   ├── socket.js                # Socket.IO configuration
+│   ├── .env                     # Environment variables
 │   ├── package.json
-│   └── index.js
+│   └── index.js                 # Server entry point
+├── Screenshot/                   # Application screenshots
 └── README.md
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- MongoDB database
-- npm or yarn package manager
+- **Node.js** (v18 or higher)
+- **MongoDB** (Local installation or MongoDB Atlas account)
+- **npm** or **yarn** package manager
+- **Git** for version control
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/yourusername/friendzy-chat-app.git
    cd "Chat Application"
    ```
 
@@ -130,11 +178,20 @@ Chat Application/
 
    **Backend (server/.env)**
    ```env
+   # Server Configuration
    PORT=8747
-   DATABASE_URL=your_mongodb_connection_string
-   JWT_KEY=your_jwt_secret_key
-   ORIGIN=http://localhost:5173
    NODE_ENV=development
+
+   # Database
+   DATABASE_URL=mongodb://localhost:27017/friendzy
+   # OR for MongoDB Atlas:
+   # DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/friendzy
+
+   # Authentication
+   JWT_KEY=your_super_secret_jwt_key_change_this_in_production
+
+   # CORS
+   ORIGIN=http://localhost:5173
    ```
 
    **Frontend (React_node_chat_app/.env)**
@@ -149,106 +206,309 @@ Chat Application/
    cd server
    npm run dev
    ```
+   Server will start on `http://localhost:8747`
 
    **Terminal 2 - Frontend application:**
    ```bash
    cd React_node_chat_app
    npm run dev
    ```
+   Application will start on `http://localhost:5173`
 
 6. **Open your browser**
    
-   Navigate to `http://localhost:5173` to access the application.
+   Navigate to `http://localhost:5173` to access Friendzy.
 
-## 🎯 Usage
+## 🎯 Usage Guide
 
-1. **Register/Login**: Create a new account or login with existing credentials
-2. **Profile Setup**: Complete your profile with avatar and personal information
-3. **Start Chatting**: 
-   - Send direct messages to other users
-   - Create or join channels for group conversations
-   - Share files and images
-   - View message history and online status
+### Getting Started
+1. **Register**: Create a new account with email and password
+2. **Profile Setup**: 
+   - Upload a profile picture
+   - Set your first and last name
+   - Choose a profile color
+3. **Find Contacts**: Search for other users to start chatting
 
-## 📡 API Endpoints
+### Direct Messaging
+1. Click on **"New DM"** button
+2. Search for a user
+3. Start your conversation
+4. Share text messages, images, and files
 
-### Authentication
-- `POST /api/auth/signup` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/user-info` - Get current user info
+### Channel Features
+1. **Create Channel**: 
+   - Click **"Create Channel"**
+   - Set channel name and description
+   - Upload a channel icon
+   - Add members
+2. **Manage Channel** (Admin only):
+   - Edit channel details
+   - Add/remove members
+   - Update channel icon
+   - Delete channel
 
-### Messages
-- `GET /api/messages/:userId` - Get messages with a user
-- `POST /api/messages` - Send a message
-- `POST /api/messages/upload-file` - Upload file
+### File Sharing
+- Click the attachment icon (📎)
+- Select images or documents
+- Files are stored securely in GridFS
+- View images directly in chat
+- Download any shared files
 
-### Contacts
-- `POST /api/contacts/search` - Search for contacts
-- `GET /api/contacts/get-contacts-for-dm` - Get DM contacts
-- `GET /api/contacts/get-all-contacts` - Get all contacts
+## 📡 API Documentation
 
-### Channels
-- `POST /api/channel/create-channel` - Create a new channel
-- `GET /api/channel/get-user-channels` - Get user's channels
-- `GET /api/channel/get-channel-messages/:channelId` - Get channel messages
+### Authentication Endpoints
 
-## 🔄 Real-time Events
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/auth/signup` | Register new user | No |
+| POST | `/api/auth/login` | User login | No |
+| POST | `/api/auth/logout` | User logout | Yes |
+| GET | `/api/auth/user-info` | Get current user | Yes |
+| POST | `/api/auth/update-profile` | Update user profile | Yes |
+| POST | `/api/auth/add-profile-image` | Upload profile image | Yes |
+| DELETE | `/api/auth/remove-profile-image` | Remove profile image | Yes |
+| GET | `/api/auth/files/:filename` | Get file from GridFS | No |
 
-The application uses Socket.IO for real-time communication:
+### Message Endpoints
 
-- `sendMessage` - Send a message to a user or channel
-- `receiveMessage` - Receive a message in real-time
-- `receiveChannelMessage` - Receive channel message
-- Connection events for user presence tracking
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/messages/get-message` | Get messages with user | Yes |
+| POST | `/api/messages/upload-file` | Upload file in DM | Yes |
 
-## 🎨 UI Components
+### Contact Endpoints
 
-Built with modern, accessible components using:
-- **Radix UI** for base components (Dialog, Tooltip, Avatar, etc.)
-- **Tailwind CSS** for utility-first styling
-- **Custom animations** with Lottie
-- **Responsive design** for mobile and desktop
-- **Dark theme** with modern color palette
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/contacts/search` | Search contacts | Yes |
+| GET | `/api/contacts/get-contacts-for-dm` | Get DM contacts | Yes |
+| GET | `/api/contacts/all` | Get all contacts | Yes |
+
+### Channel Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/channel/create-channel` | Create new channel | Yes |
+| GET | `/api/channel/get-user-channel` | Get user's channels | Yes |
+| GET | `/api/channel/get-channel-messages/:channelId` | Get channel messages | Yes |
+| PATCH | `/api/channel/update-channel/:channelId` | Update channel (Admin) | Yes |
+| DELETE | `/api/channel/delete-channel/:channelId` | Delete channel (Admin) | Yes |
+
+## 🔄 Real-Time Events (Socket.IO)
+
+### Client to Server Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `sendMessage` | `{ sender, recipient, content, messageType, fileUrl }` | Send DM |
+| `send-channel-message` | `{ channelId, sender, content, messageType, fileUrl }` | Send channel message |
+
+### Server to Client Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `receiveMessage` | `message` | Receive new DM |
+| `receive-channel-message` | `message` | Receive channel message |
 
 ## 🚀 Deployment
 
-### Frontend (Vercel)
-1. Build the frontend:
+### Prerequisites
+- MongoDB Atlas account (for production database)
+- Vercel account (for frontend)
+- Render/Railway account (for backend)
+
+### Frontend Deployment (Vercel)
+
+1. **Prepare for deployment**
    ```bash
    cd React_node_chat_app
    npm run build
    ```
-2. Deploy to Vercel or connect your GitHub repository
-3. Set environment variables:
-   - `VITE_SERVER_URL` - Your backend URL
 
-### Backend (Render/Railway)
-1. Deploy the `server` folder
-2. Set environment variables:
-   - `DATABASE_URL` - MongoDB connection string
-   - `JWT_KEY` - JWT secret key
-   - `ORIGIN` - Frontend URL
-   - `PORT` - Port number (default: 8747)
-   - `NODE_ENV` - Set to `production`
+2. **Deploy to Vercel**
+   - Connect your GitHub repository to Vercel
+   - Or use Vercel CLI:
+     ```bash
+     npm i -g vercel
+     vercel
+     ```
 
-## 🔐 Security
+3. **Set environment variables in Vercel**
+   ```env
+   VITE_SERVER_URL=https://your-backend-url.com
+   ```
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- CORS protection
-- Input validation and sanitization
-- Secure file upload handling
+4. **Configure vercel.json** (already included)
+   ```json
+   {
+     "rewrites": [
+       { "source": "/(.*)", "destination": "/index.html" }
+     ]
+   }
+   ```
+
+### Backend Deployment (Render/Railway)
+
+1. **Push code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Prepare for deployment"
+   git push origin main
+   ```
+
+2. **Deploy on Render**
+   - Create new Web Service
+   - Connect GitHub repository
+   - Set root directory to `server`
+   - Build command: `npm install`
+   - Start command: `npm start`
+
+3. **Set environment variables**
+   ```env
+   NODE_ENV=production
+   PORT=8747
+   DATABASE_URL=mongodb+srv://user:pass@cluster.mongodb.net/friendzy
+   JWT_KEY=your_production_jwt_secret
+   ORIGIN=https://your-frontend-url.vercel.app
+   ```
+
+4. **MongoDB Atlas Setup**
+   - Create a cluster
+   - Set up database user
+   - Whitelist IP addresses (or allow from anywhere: 0.0.0.0/0)
+   - Get connection string
+
+### Post-Deployment Checklist
+
+- [ ] Backend server is running
+- [ ] Frontend is accessible
+- [ ] MongoDB connection is successful
+- [ ] CORS is properly configured
+- [ ] Socket.IO connection works
+- [ ] User registration/login works
+- [ ] File uploads work (GridFS)
+- [ ] Profile images display correctly
+- [ ] Channel images display correctly
+- [ ] Real-time messaging functions
+- [ ] Environment variables are secure
+
+## 🔐 Security Features
+
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: Bcrypt with salt rounds for password security
+- **HTTP-Only Cookies**: Prevents XSS attacks
+- **CORS Protection**: Configured allowed origins
+- **Input Validation**: Server-side validation for all inputs
+- **File Upload Security**: Multer configuration with file size limits
+- **GridFS Storage**: Secure file storage in MongoDB
+- **Environment Variables**: Sensitive data in .env files
+- **.gitignore**: Prevents committing secrets
+
+## 🎨 UI/UX Features
+
+### Design System
+- **Color Palette**: Modern dark theme with purple accents (#8417ff)
+- **Typography**: Clean, readable fonts
+- **Spacing**: Consistent padding and margins
+- **Animations**: Smooth transitions and Lottie animations
+
+### Components
+- Custom scrollbars
+- Toast notifications
+- Loading states
+- Error handling
+- Empty states with animations
+- Responsive layouts
+- Accessible forms
+- Modal dialogs
+- Tooltips
+- Avatar components with fallbacks
+
+## 🧪 Testing
+
+```bash
+# Run frontend tests
+cd React_node_chat_app
+npm run test
+
+# Run backend tests
+cd server
+npm run test
+```
+
+## 📊 Performance Optimizations
+
+- **Code Splitting**: React lazy loading for routes
+- **Image Optimization**: GridFS for efficient storage
+- **Build Optimization**: Vite for fast builds
+- **State Management**: Zustand for minimal re-renders
+- **Socket.IO**: Efficient real-time communication
+- **Database Indexing**: MongoDB indexes for fast queries
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Socket.IO connection fails**
+- Check CORS configuration
+- Verify `ORIGIN` environment variable
+- Ensure server is running
+
+**Images not displaying**
+- Verify GridFS is initialized
+- Check file paths in database
+- Ensure `getImageUrl` function is correct
+
+**Authentication errors**
+- Check JWT_KEY matches in server
+- Verify cookie settings
+- Clear browser cookies
+
+**MongoDB connection fails**
+- Check DATABASE_URL format
+- Verify network access in MongoDB Atlas
+- Ensure database user permissions
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Commit your changes: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin feature/new-feature`
-5. Submit a pull request
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Commit your changes**
+   ```bash
+   git commit -m 'Add some amazing feature'
+   ```
+4. **Push to the branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+5. **Open a Pull Request**
+
+### Coding Standards
+- Follow ESLint configuration
+- Write meaningful commit messages
+- Add comments for complex logic
+- Test your changes thoroughly
+- Update documentation as needed
+
+## 📝 Future Enhancements
+
+- [ ] Voice/Video calling
+- [ ] Message reactions (emoji)
+- [ ] Message editing and deletion
+- [ ] Typing indicators
+- [ ] Read receipts
+- [ ] Push notifications
+- [ ] User blocking
+- [ ] Message search
+- [ ] Export chat history
+- [ ] Multi-language support
+- [ ] Theme customization
+- [ ] Message encryption (E2E)
 
 ## 📄 License
 
@@ -256,21 +516,36 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**PRIYANSHU SINGH**
+**Priyanshu Singh**
+- GitHub: [@priyanshusingh017](https://github.com/priyanshusingh017)
+- LinkedIn: [LinkedIn](https://www.linkedin.com/in/priyanshu-singh-00s7)
+- Email: your.email@example.com
 
 ## 🙏 Acknowledgments
 
-- React team for the amazing framework
-- Socket.IO for real-time communication capabilities
-- Tailwind CSS for the utility-first approach
-- Radix UI for accessible component primitives
-- MongoDB team for the excellent database solution
-- The open-source community for inspiration and tools
+- [React Team](https://react.dev/) - For the amazing UI framework
+- [Socket.IO](https://socket.io/) - For real-time communication
+- [MongoDB](https://www.mongodb.com/) - For the robust database
+- [Tailwind CSS](https://tailwindcss.com/) - For utility-first styling
+- [Radix UI](https://www.radix-ui.com/) - For accessible components
+- [Vite](https://vitejs.dev/) - For lightning-fast development
+- Open Source Community - For inspiration and tools
+
+## 📞 Support
+
+If you encounter any issues or have questions:
+- Open an [Issue](https://github.com/yourusername/friendzy/issues)
+- Check existing [Discussions](https://github.com/yourusername/friendzy/discussions)
+- Read the [Documentation](#)
 
 ---
 
 <div align="center">
+  <h3>⭐ Star this repo if you find it helpful! ⭐</h3>
+  <br>
   <strong>Friendzy</strong> - Where conversations come alive! 💬✨
   <br><br>
   Made with ❤️ by Priyanshu Singh
+  <br><br>
+  <a href="#top">⬆️ Back to Top</a>
 </div>
