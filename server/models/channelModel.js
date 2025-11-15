@@ -1,53 +1,56 @@
 import mongoose from "mongoose";
 
 const channelSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        trim: true,
-        maxlength: 100,
+  name: {
+    type: String,
+    required: true,
+  },
+  image: {
+    type: String,
+    required: false,
+  },
+  description: {
+    type: String,
+    required: false,
+  },
+  members: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Users",
+      required: true,
     },
-    members: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-    }],
-    admin: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
+  ],
+  admin: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Users",
+    required: true,
+  },
+  messages: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Messages",
     },
-    image: {
-        type: String,
-        default: null,
-    },
-    description: {
-        type: String,
-        maxlength: 500,
-        default: "",
-    },
-    isPrivate: {
-        type: Boolean,
-        default: false,
-    },
-    lastMessage: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Message",
-        default: null,
-    },
-    lastActivity: {
-        type: Date,
-        default: Date.now,
-    },
-}, {
-    timestamps: true,
+  ],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
-// Index for efficient queries
-channelSchema.index({ members: 1 });
-channelSchema.index({ admin: 1 });
-channelSchema.index({ lastActivity: -1 });
+channelSchema.pre("save", function (next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
-const Channel = mongoose.model("Channel", channelSchema);
+channelSchema.pre("findOneAndUpdate", function (next) {
+  this.set({ updatedAt: Date.now() });
+  next();
+});
+
+const Channel = mongoose.model("Channels", channelSchema);
 
 export default Channel;

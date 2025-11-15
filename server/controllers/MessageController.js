@@ -1,162 +1,66 @@
 import Message from "../models/MessagesModel.js";
-import Channel from "../models/channelModel.js";
-import { mkdirSync, renameSync } from 'fs';
-import path from 'path';
+import { uploadToGridFS } from "../config/gridfs.js";
+import { generateFilename } from "../middlewares/uploadMiddleware.js";
 
 export const getMessages = async (request, response, next) => {
-    try {
-        const user1 = request.userId;
-        const user2 = request.body.id;
-
-        if (!user1 || !user2) {
-            return response.status(400).json({ error: "Both user IDs are required." });
-        }
-
-        const messages = await Message.find({
-            $or: [
-                { sender: user1, recipient: user2 },
-                { sender: user2, recipient: user1 }
-            ]
-        }).sort({ timestamp: 1 });
-
-        return response.status(200).json({ messages });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ error: "Internal Server Error" });
-    }
-};
-
-export const uploadFile = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+    const user1 = request.userId;
+    const user2 = request.body.id;
+
+    if (!user1 || !user2) {
+      return response.status(400).send("Both user ID's are required.");
     }
 
-    const { recipientId } = req.body;
-    const senderId = req.userId;
+    const messages = await Message.find({
+      $or: [
+        { sender: user1, recipient: user2 },
+        { sender: user2, recipient: user1 },
+      ],
+    }).sort({ timestamp: 1 });
 
-    if (!recipientId) {
-      return res.status(400).json({ error: "Recipient ID is required" });
-    }
-
-    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
-    if (!allowedTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ error: "Invalid file type" });
-    }
-    if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ error: "File size exceeds the limit of 10MB" });
-    }
-
-    const date = Date.now();
-    const fileDir = path.join("uploads", "files", String(date));
-    const fileName = path.join(fileDir, req.file.originalname);
-
-    try {
-      mkdirSync(fileDir, { recursive: true });
-      renameSync(req.file.path, fileName);
-    } catch (error) {
-      console.error("Error saving file:", error);
-      return res.status(500).json({ error: "Failed to save file" });
-    }
-
-    // Fix: Store relative path instead of full URL
-    const fileUrl = `uploads/files/${date}/${req.file.originalname}`;
-
-    const message = new Message({
-      sender: senderId,
-      recipient: recipientId,
-      messageType: "file",
-      fileUrl: fileUrl, // Store relative path
-      fileName: req.file.originalname,
-      fileSize: req.file.size,
-      content: req.file.originalname,
-    });
-    await message.save();
-
-    const populatedMessage = await Message.findById(message._id)
-      .populate('sender', 'firstName lastName email image color')
-      .populate('recipient', 'firstName lastName email image color');
-
-    return res.status(200).json({
-      filePath: fileUrl,
-      message: populatedMessage,
-    });
+    return response.status(200).json({ messages });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
   }
 };
 
-export const uploadChannelFile = async (request, response, next) => {
-    try {
-        if (!request.file) {
-            return response.status(400).json({ error: "File is required" });
-        }
-
-        const { channelId } = request.body;
-        const userId = request.userId;
-
-        if (!channelId) {
-            return response.status(400).json({ error: "Channel ID is required" });
-        }
-
-        const channel = await Channel.findById(channelId);
-        if (!channel) {
-            return response.status(404).json({ error: "Channel not found" });
-        }
-
-        if (!channel.members.includes(userId)) {
-            return response.status(403).json({ error: "Access denied. You are not a member of this channel." });
-        }
-
-        const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
-        if (!allowedTypes.includes(request.file.mimetype)) {
-            return response.status(400).json({ error: "Invalid file type" });
-        }
-        if (request.file.size > 10 * 1024 * 1024) {
-            return response.status(400).json({ error: "File size exceeds the limit of 10MB" });
-        }
-
-        const date = Date.now();
-        const fileDir = path.join("uploads", "files", String(date));
-        const fileName = path.join(fileDir, request.file.originalname);
-
-        try {
-            mkdirSync(fileDir, { recursive: true });
-            renameSync(request.file.path, fileName);
-        } catch (error) {
-            console.error("Error saving file:", error);
-            return response.status(500).json({ error: "Failed to save file" });
-        }
-
-        // Fix: Store relative path instead of full URL
-        const fileUrl = `uploads/files/${date}/${request.file.originalname}`;
-
-        const message = new Message({
-            sender: userId,
-            channel: channelId,
-            messageType: "file",
-            fileUrl: fileUrl, // Store relative path
-            fileName: request.file.originalname,
-            fileSize: request.file.size,
-            content: request.file.originalname,
-        });
-        await message.save();
-
-        await Channel.findByIdAndUpdate(channelId, {
-            lastActivity: new Date(),
-            lastMessage: message._id,
-        });
-
-        const populatedMessage = await Message.findById(message._id)
-            .populate('sender', 'firstName lastName email image color');
-
-        return response.status(200).json({ 
-            filePath: fileUrl, 
-            message: populatedMessage 
-        });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ error: "Internal Server Error" });
+export const uploadFile = async (request, response, next) => {
+  try {
+    // Handle both upload.single() and upload.any()
+    const file = request.file || (request.files && request.files[0]);
+    
+    if (!file) {
+      return response.status(400).send("File is required.");
     }
+
+    console.log("📤 Uploading file:", file.originalname);
+
+    // Generate unique filename
+    const filename = generateFilename(file.originalname);
+    
+    // Create plain metadata object - convert everything to primitive types
+    const plainMetadata = {
+      userId: String(request.userId), // Ensure it's a string
+      uploadDate: new Date().toISOString(), // ISO string
+      contentType: String(file.mimetype),
+      originalName: String(file.originalname),
+      fileSize: Number(file.size),
+      fileType: 'message-attachment'
+    };
+
+    console.log("📝 Metadata:", plainMetadata);
+    
+    // Upload to GridFS with plain metadata
+    await uploadToGridFS(filename, file.buffer, plainMetadata);
+
+    console.log("✅ File uploaded to GridFS:", filename);
+
+    return response.status(200).json({ 
+      filePath: filename
+    });
+  } catch (error) {
+    console.log("❌ Error uploading file:", error);
+    return response.status(500).send("Internal Server Error");
+  }
 };

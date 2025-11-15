@@ -1,16 +1,16 @@
 import { useAppStore } from "@/store";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
-import { useSocket } from "@/context/socketcontext";
 import apiClient from "@/lib/api_client";
 import { GET_ALL_MESSAGES_ROUTE, GET_CHANNEL_MESSAGES_ROUTE, HOST } from "@/utils/constants";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { MdFolderZip } from "react-icons/md";
 import { IoCloseSharp } from "react-icons/io5";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getColor } from "@/lib/utils";
 
 const MessageContainer = () => {
     const scrollRef = useRef();
-    const socket = useSocket();
     const {
         selectedChatMessages,
         selectedChatType,
@@ -19,7 +19,6 @@ const MessageContainer = () => {
         setSelectedChatMessages,
         setFileDownloadingprogress,
         setDownloading,
-        addMessage,
     } = useAppStore();
 
     const [showImage, setShowImage] = useState(false);
@@ -28,35 +27,40 @@ const MessageContainer = () => {
     useEffect(() => {
         const getMessages = async () => {
             try {
-                let response;
-                if (selectedChatType === "contact") {
-                    response = await apiClient.post(
-                        "/api/messages/get-message",
-                        { id: selectedChatData._id },
-                        { withCredentials: true }
-                    );
-                } else if (selectedChatType === "channel") {
-                    response = await apiClient.get(
-                        GET_CHANNEL_MESSAGES_ROUTE(selectedChatData._id),
-                        { withCredentials: true }
-                    );
-                }
-
-                if (response?.data?.messages) {
+                const response = await apiClient.post(
+                    GET_ALL_MESSAGES_ROUTE,
+                    { id: selectedChatData._id },
+                    { withCredentials: true }
+                );
+                if (response.data.messages) {
                     setSelectedChatMessages(response.data.messages);
-                } else if (response?.data?.message) {
-                    setSelectedChatMessages(response.data.message);
-                } else {
-                    setSelectedChatMessages([]);
                 }
             } catch (error) {
                 console.log({ error });
-                setSelectedChatMessages([]);
             }
         };
 
-        if (selectedChatData?._id && (selectedChatType === "contact" || selectedChatType === "channel")) {
-            getMessages();
+        const getChannelMessages = async () => {
+            try {
+                const response = await apiClient.get(
+                    `${GET_CHANNEL_MESSAGES_ROUTE}/${selectedChatData._id}`, // ✅ Fixed - use template string directly
+                    { withCredentials: true }
+                );
+                console.log("📥 Fetched channel messages:", response.data);
+                if (response.data.messages) {
+                    setSelectedChatMessages(response.data.messages);
+                }
+            } catch (error) {
+                console.log("Error fetching channel messages:", error);
+            }
+        };
+
+        if (selectedChatData?._id) {
+            if (selectedChatType === "contact") {
+                getMessages();
+            } else if (selectedChatType === "channel") {
+                getChannelMessages();
+            }
         }
     }, [selectedChatData?._id, selectedChatType, setSelectedChatMessages]);
 
@@ -71,11 +75,31 @@ const MessageContainer = () => {
         return imageRegex.test(filePath);
     };
 
+    // Helper function to get correct file URL
+    const getFileUrl = (fileUrl) => {
+        if (!fileUrl) return null;
+        // If it's already a full URL, return it
+        if (fileUrl.startsWith('http')) return fileUrl;
+        // If it starts with /api/auth/files/, return with HOST
+        if (fileUrl.startsWith('/api/auth/files/')) return `${HOST}${fileUrl}`;
+        // Otherwise, construct the correct path
+        return `${HOST}/api/auth/files/${fileUrl}`;
+    };
+
+    // Add this helper function for user images
+    const getUserImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        if (imagePath.startsWith('/api/auth/files/')) return `${HOST}${imagePath}`;
+        return `${HOST}/api/auth/files/${imagePath}`;
+    };
+
     const downloadFile = async (url) => {
         setDownloading(true);
         setFileDownloadingprogress(0);
         try {
-            const response = await apiClient.get(`${HOST}/${url}`, {
+            const fileUrl = getFileUrl(url);
+            const response = await apiClient.get(fileUrl, {
                 responseType: "blob",
                 onDownloadProgress: (ProgressEvent) => {
                     const { loaded, total } = ProgressEvent;
@@ -101,93 +125,202 @@ const MessageContainer = () => {
     };
 
     const renderDMMessages = (message) => {
-        const isOwnMessage = message.sender?._id === userInfo?.id || message.sender === userInfo?.id;
+        const isOwnMessage = message.sender === selectedChatData._id;
 
         return (
-            <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-4 group`}>
-                <div className={`flex items-end gap-2 max-w-[70%] ${isOwnMessage ? "flex-row-reverse" : "flex-row"}`}>
-                    {(selectedChatType === "channel" && !isOwnMessage) && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                            {typeof message.sender === "object"
-                                ? (message.sender.firstName?.[0]?.toUpperCase() ||
-                                      message.sender.email?.[0]?.toUpperCase() ||
-                                      "?")
-                                : "?"}
-                        </div>
-                    )}
-
-                    <div className="flex flex-col">
-                        {selectedChatType === "channel" && !isOwnMessage && (
-                            <div className="text-xs text-gray-400 mb-1 px-1">
-                                {typeof message.sender === "object"
-                                    ? `${message.sender.firstName || ""} ${message.sender.lastName || ""}`.trim() ||
-                                      message.sender.email
-                                    : "Unknown"}
+            <div className={`${isOwnMessage ? "text-left" : "text-right"}`}>
+                {message.messageType === "text" && (
+                    <div
+                        className={`${
+                            !isOwnMessage
+                                ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                                : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
+                        } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+                    >
+                        {message.content}
+                    </div>
+                )}
+                {message.messageType === "file" && (
+                    <div
+                        className={`${
+                            !isOwnMessage
+                                ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                                : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
+                        } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+                    >
+                        {checkIfImage(message.fileUrl) ? (
+                            <div
+                                className="cursor-pointer"
+                                onClick={() => {
+                                    setShowImage(true);
+                                    setImageURL(message.fileUrl);
+                                }}
+                            >
+                                <img
+                                    src={getFileUrl(message.fileUrl)}
+                                    height={300}
+                                    width={300}
+                                    alt="attachment"
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-4">
+                                <span className="text-white/80 text-3xl rounded-full bg-black/20 p-3">
+                                    <MdFolderZip />
+                                </span>
+                                <span>{message.fileUrl.split("/").pop()}</span>
+                                <span
+                                    className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                                    onClick={() => downloadFile(message.fileUrl)}
+                                >
+                                    <IoMdArrowRoundDown />
+                                </span>
                             </div>
                         )}
+                    </div>
+                )}
+                <div className="text-xs text-gray-600">
+                    {moment(message.timestamp).format("LT")}
+                </div>
+            </div>
+        );
+    };
 
-                        <div
-                            className={`${
-                                isOwnMessage
-                                    ? "bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg"
-                                    : "bg-[#2a2b33] text-white border border-[#3a3b45]"
-                            } inline-block px-4 py-3 rounded-2xl ${
-                                isOwnMessage ? "rounded-br-md" : "rounded-bl-md"
-                            } break-words shadow-md hover:shadow-lg transition-all duration-200 ${
-                                message.isOptimistic ? "opacity-70" : ""
+    const renderChannelMessages = (message) => {
+        const senderImage = getUserImageUrl(message.sender?.image);
+        const senderColor = getColor(message.sender?.color || 0);
+
+        return (
+            <div
+                className={`mt-5 flex ${
+                    message.sender?._id === userInfo.id ? "justify-end" : "justify-start"
+                }`}
+            >
+                {message.sender?._id !== userInfo.id && (
+                    <div className="flex items-start gap-3">
+                        {/* Sender Profile Image or Avatar */}
+                        <div className="flex-shrink-0">
+                            {senderImage ? (
+                                <img
+                                    src={senderImage}
+                                    alt={`${message.sender?.firstName} ${message.sender?.lastName}`}
+                                    className="h-10 w-10 rounded-full object-cover"
+                                    onError={(e) => {
+                                        console.error("Failed to load image:", senderImage);
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            <div 
+                                className={`h-10 w-10 rounded-full flex items-center justify-center text-lg font-semibold ${
+                                    senderImage ? 'hidden' : 'flex'
                             }`}
-                        >
-                            {message.messageType === "text" && (
-                                <div className="text-sm leading-relaxed">{message.content}</div>
-                            )}
+                                style={{ backgroundColor: senderColor }}
+                            >
+                                {message.sender?.firstName
+                                    ? message.sender.firstName.charAt(0).toUpperCase()
+                                    : message.sender?.email?.charAt(0).toUpperCase() || "?"}
+                            </div>
+                        </div>
 
-                            {message.messageType === "file" && (
-                                <div className="flex flex-col gap-2">
+                        {/* Message Content */}
+                        <div className="flex flex-col max-w-[70%]">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium text-white/90">
+                                    {message.sender?.firstName && message.sender?.lastName
+                                        ? `${message.sender.firstName} ${message.sender.lastName}`
+                                        : message.sender?.email || "Unknown User"}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                    {moment(message.timestamp).format("LT")}
+                                </span>
+                            </div>
+                            {message.messageType === "text" ? (
+                                <div className="bg-[#2a2b33] text-white/90 border border-white/10 break-words p-3 rounded-lg">
+                                    {message.content}
+                                </div>
+                            ) : (
+                                <div className="bg-[#2a2b33] text-white/90 border border-white/10 p-3 rounded-lg">
                                     {checkIfImage(message.fileUrl) ? (
                                         <div
-                                            className="cursor-pointer rounded-lg overflow-hidden hover:opacity-80 transition-all duration-200"
+                                            className="cursor-pointer"
                                             onClick={() => {
-                                                setImageURL(message.fileUrl);
+                                                setImageURL(getFileUrl(message.fileUrl));
                                                 setShowImage(true);
                                             }}
                                         >
                                             <img
-                                                src={`${HOST}/${message.fileUrl}`}
-                                                alt="Attachment"
-                                                className="max-w-[200px] max-h-[200px] object-cover rounded-lg shadow-md"
-                                                onError={(e) => {
-                                                    console.error("Image failed to load:", `${HOST}/${message.fileUrl}`);
-                                                    e.target.style.display = 'none';
-                                                }}
+                                                src={getFileUrl(message.fileUrl)}
+                                                alt="attachment"
+                                                className="max-w-xs rounded"
                                             />
                                         </div>
                                     ) : (
-                                        <div
-                                            className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-colors cursor-pointer"
-                                            onClick={() => downloadFile(message.fileUrl)}
-                                        >
-                                            <MdFolderZip className="text-2xl text-blue-400" />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-medium truncate">
-                                                    {message.fileUrl.split(/[/\\]/).pop()}
-                                                </div>
-                                                <div className="text-xs text-gray-400">Click to download</div>
-                                            </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-white/80 text-3xl bg-black/20 rounded-full p-3">
+                                                <MdFolderZip />
+                                            </span>
+                                            <span className="text-sm">{message.fileUrl?.split("/").pop()}</span>
+                                            <span
+                                                className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                                                onClick={() => downloadFile(getFileUrl(message.fileUrl))}
+                                            >
+                                                <IoMdArrowRoundDown />
+                                            </span>
                                         </div>
                                     )}
                                 </div>
                             )}
                         </div>
-
-                        <div
-                            className={`text-xs text-gray-500 mt-1 px-1 ${
-                                isOwnMessage ? "text-right" : "text-left"
-                            } opacity-0 group-hover:opacity-100 transition-opacity`}
-                        >
-                            {moment(message.timestamp).format("HH:mm")}
-                        </div>
                     </div>
-                </div>
+                )}
+
+                {message.sender?._id === userInfo.id && (
+                    <div className="flex flex-col max-w-[70%]">
+                        <div className="flex items-center justify-end gap-2 mb-1">
+                            <span className="text-xs text-gray-400">
+                                {moment(message.timestamp).format("LT")}
+                            </span>
+                        </div>
+                        {message.messageType === "text" ? (
+                            <div className="bg-[#8417ff]/20 text-white/90 border border-[#8417ff]/50 break-words p-3 rounded-lg">
+                                {message.content}
+                            </div>
+                        ) : (
+                            <div className="bg-[#8417ff]/20 text-white/90 border border-[#8417ff]/50 p-3 rounded-lg">
+                                {checkIfImage(message.fileUrl) ? (
+                                    <div
+                                        className="cursor-pointer"
+                                        onClick={() => {
+                                            setImageURL(getFileUrl(message.fileUrl));
+                                            setShowImage(true);
+                                        }}
+                                    >
+                                        <img
+                                            src={getFileUrl(message.fileUrl)}
+                                            alt="attachment"
+                                            className="max-w-xs rounded"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-white/80 text-3xl bg-black/20 rounded-full p-3">
+                                            <MdFolderZip />
+                                        </span>
+                                        <span className="text-sm">{message.fileUrl?.split("/").pop()}</span>
+                                        <span
+                                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                                            onClick={() => downloadFile(getFileUrl(message.fileUrl))}
+                                        >
+                                            <IoMdArrowRoundDown />
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     };
@@ -195,45 +328,18 @@ const MessageContainer = () => {
     const renderMessages = () => {
         let lastDate = null;
 
+        // Remove duplicates and optimistic messages
         const uniqueMessages = selectedChatMessages.reduce((acc, message) => {
             const messageId = message._id;
             const optimisticId = message.optimisticId;
 
             const existingIndex = acc.findIndex(msg => {
-                // Exact ID match
                 if (messageId && msg._id === messageId) return true;
                 if (optimisticId && msg.optimisticId === optimisticId) return true;
-
-                // File message duplicate check
-                if (
-                    message.messageType === "file" &&
-                    msg.messageType === "file" &&
-                    message.fileUrl === msg.fileUrl &&
-                    message.fileName === msg.fileName &&
-                    message.sender === msg.sender &&
-                    message.recipient === msg.recipient &&
-                    Math.abs(new Date(message.timestamp) - new Date(msg.timestamp)) < 2000 // 2 seconds
-                ) {
-                    return true;
-                }
-
-                // Text message duplicate check (optional)
-                if (
-                    message.messageType === "text" &&
-                    msg.messageType === "text" &&
-                    message.content === msg.content &&
-                    message.sender === msg.sender &&
-                    message.recipient === msg.recipient &&
-                    Math.abs(new Date(message.timestamp) - new Date(msg.timestamp)) < 2000
-                ) {
-                    return true;
-                }
-
                 return false;
             });
 
             if (existingIndex !== -1) {
-                // Replace optimistic message with real one if needed
                 if (messageId && !message.isOptimistic) {
                     acc[existingIndex] = message;
                 }
@@ -244,6 +350,7 @@ const MessageContainer = () => {
             return acc;
         }, []);
 
+        // Sort by timestamp
         uniqueMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
         return uniqueMessages.map((message, index) => {
@@ -251,85 +358,22 @@ const MessageContainer = () => {
             const showDate = messageDate !== lastDate;
             lastDate = messageDate;
 
-            const isLast = index === uniqueMessages.length - 1;
-
             return (
-                <div key={message._id || message.optimisticId || `msg-${index}`} ref={isLast ? scrollRef : null}>
+                <div key={message._id || message.optimisticId || `msg-${index}`}>
                     {showDate && (
-                        <div className="flex justify-center my-2">
-                            <span className="bg-gray-700 text-white px-3 py-1 rounded-full text-xs">
-                                {moment(message.timestamp).format("MMM DD, YYYY")}
-                            </span>
+                        <div className="text-center text-gray-500 my-2">
+                            {moment(message.timestamp).format("LL")}
                         </div>
                     )}
-                    {renderDMMessages(message)}
+                    {selectedChatType === "contact" && renderDMMessages(message)}
+                    {selectedChatType === "channel" && renderChannelMessages(message)}
                 </div>
             );
         });
     };
 
-    // Also add this helper function to your component to debug
-    const logMessages = () => {
-        console.log("All messages:", selectedChatMessages.map(msg => ({
-            id: msg._id,
-            optimisticId: msg.optimisticId,
-            content: msg.content || msg.fileName,
-            timestamp: msg.timestamp,
-            isOptimistic: msg.isOptimistic
-        })));
-    };
-
-    // You can call logMessages() in useEffect to debug
-    useEffect(() => {
-        console.log("Messages updated, count:", selectedChatMessages.length);
-        // Uncomment the line below to debug message duplicates
-        // logMessages();
-    }, [selectedChatMessages]);
-
-    // Add this useEffect to handle real-time messages
-    useEffect(() => {
-        if (!socket) return;
-
-        const handleReceiveMessage = (message) => {
-            // Only add if it's for the current chat
-            if (selectedChatType === "contact" && 
-                (message.recipient === selectedChatData._id || message.sender === selectedChatData._id)) {
-                setSelectedChatMessages([...selectedChatMessages, message]);
-            }
-        };
-
-        const handleReceiveChannelMessage = (message) => {
-            if (selectedChatType === "channel" && message.channelId === selectedChatData._id) {
-                setSelectedChatMessages((prev) => {
-                    // Replace optimistic message if optimisticId matches
-                    if (message.optimisticId) {
-                        return prev.map(msg =>
-                            msg.optimisticId === message.optimisticId ? message : msg
-                        );
-                    }
-                    // Otherwise, add new message
-                    return [...prev, message];
-                });
-            }
-        };
-
-        socket.on("receiveMessage", handleReceiveMessage);
-        socket.on("receiveChannelMessage", handleReceiveChannelMessage);
-
-        return () => {
-            socket.off("receiveMessage", handleReceiveMessage);
-            socket.off("receiveChannelMessage", handleReceiveChannelMessage);
-        };
-    }, [socket, selectedChatType, selectedChatData?._id, selectedChatMessages, setSelectedChatMessages]);
-
-    useEffect(() => {
-        if (selectedChatType === "channel" && selectedChatData?._id && socket) {
-            socket.emit("joinChannel", selectedChatData._id);
-        }
-    }, [selectedChatType, selectedChatData?._id, socket]);
-
     return (
-        <div className="flex-1 overflow-y-auto scrollbar-hidden px-4 py-6 md:px-8 bg-gradient-to-b from-[#1a1b23] to-[#1f202a] md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">
+        <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 px-8 md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">
             {selectedChatMessages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                     <div className="text-center text-gray-400">
@@ -345,27 +389,29 @@ const MessageContainer = () => {
                     </div>
                 </div>
             ) : (
-                renderMessages()
+                <>
+                    {renderMessages()}
+                    <div ref={scrollRef} />
+                </>
             )}
-            <div ref={scrollRef} />
             {showImage && (
-                <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-xl bg-black/50 flex-col">
-                    <div className="relative">
+                <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-lg flex-col">
+                    <div>
                         <img
-                            src={`${HOST}/${imageURL}`}
-                            className="max-h-[80vh] max-w-[80vw] object-contain rounded-lg shadow-2xl"
-                            alt="Preview"
+                            src={getFileUrl(imageURL)}
+                            className="h-[80vh] w-full bg-cover"
+                            alt="preview"
                         />
                     </div>
-                    <div className="flex gap-4 fixed top-6 right-6">
+                    <div className="flex gap-5 fixed top-0 mt-5">
                         <button
-                            className="bg-black/30 backdrop-blur-sm p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-200 text-white border border-white/20"
+                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
                             onClick={() => downloadFile(imageURL)}
                         >
                             <IoMdArrowRoundDown />
                         </button>
                         <button
-                            className="bg-black/30 backdrop-blur-sm p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-200 text-white border border-white/20"
+                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
                             onClick={() => {
                                 setShowImage(false);
                                 setImageURL(null);

@@ -3,18 +3,26 @@
  */
 import { Router } from "express";
 import { verifyToken } from "../middlewares/AuthMiddle.js";
-import { getAllContacts, getContactsForDMList, SearchContacts } from "../controllers/ContactsController.js";
+import {
+  SearchContacts,
+  getContactsForDMList,
+  getAllContacts,
+} from "../controllers/ContactsController.js";
 
-const contactRoutes = Router();
+/**
+ * Contact-related API routes
+ */
+
+const contactsRoutes = Router();
 
 // Search contacts (protected)
-contactRoutes.post("/search", verifyToken, SearchContacts);
+contactsRoutes.post("/search", verifyToken, SearchContacts);
 
-// Get recent DM contacts (protected)
-contactRoutes.post("/get-contacts-for-dm", verifyToken, getContactsForDMList);
+// Get recent DM contacts (protected) - ✅ Changed from POST to GET
+contactsRoutes.get("/get-contacts-for-dm", verifyToken, getContactsForDMList);
 
-// Get all contacts except current user (protected)
-contactRoutes.get("/all", verifyToken, getAllContacts);
+// Get all contacts (protected)
+contactsRoutes.get("/all", verifyToken, getAllContacts);
 
-export default contactRoutes; 
+export default contactsRoutes;
 

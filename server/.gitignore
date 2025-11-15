@@ -16,6 +16,8 @@ pnpm-debug.log*
 
 # Uploaded files (user-generated content)
 uploads/
+uploads.files/
+uploads.chunks/
 
 # OS files
 .DS_Store
@@ -40,3 +42,7 @@ coverage/
 *.pem
 *.key
 .cache
+
+# Temporary files
+temp/
+tmp/

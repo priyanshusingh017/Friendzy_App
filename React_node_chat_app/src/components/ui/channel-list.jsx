@@ -4,6 +4,13 @@ import { HOST } from "@/utils/constants";
 import { Badge } from "./badge";
 import { useSocket } from "@/context/socketcontext";
 
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/api/auth/files/')) return `${HOST}${imagePath}`;
+    return `${HOST}/api/auth/files/${imagePath}`;
+};
+
 const ChannelList = ({ channels = [] }) => {
     const { setSelectedChatType, setSelectedChatData, selectedChatData, selectedChatType } = useAppStore();
     const socket = useSocket();
@@ -36,29 +43,41 @@ const ChannelList = ({ channels = [] }) => {
                     >
                         <div className="relative">
                             <Avatar className="h-10 w-10">
-                                <AvatarImage
-                                    src={channel.image ? `${HOST}/${channel.image}` : ""}
-                                    alt={channel.name}
-                                />
-                                <AvatarFallback className="bg-purple-600 text-white font-bold text-sm">
-                                    #
-                                </AvatarFallback>
+                                {channel.image ? (
+                                    <AvatarImage
+                                        src={getImageUrl(channel.image)}
+                                        alt={channel.name}
+                                        className="object-cover"
+                                    />
+                                ) : (
+                                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-700 text-white font-bold text-lg">
+                                        #
+                                    </AvatarFallback>
+                                )}
                             </Avatar>
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-white font-medium mb-0.5">{channel.name}</h3>
+                                <h3 className="text-white font-medium mb-0.5 truncate max-w-[180px]">
+                                    {channel.name}
+                                </h3>
                                 {channel.unreadCount && channel.unreadCount > 0 && (
-                                    <Badge className="bg-purple-600 text-xs px-1">
+                                    <Badge className="bg-purple-600 text-xs px-1.5 py-0.5 ml-2 shrink-0">
                                         {channel.unreadCount}
                                     </Badge>
                                 )}
                             </div>
-                            <div className="flex items-center gap-1 mt-1">
+                            <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-xs text-gray-400">
+                                    {channel.members?.length || 0} members
+                                </span>
                                 {channel.admin && (
-                                    <span className="text-xs text-purple-400">
-                                        • Admin: {channel.admin.firstName} {channel.admin.lastName}
-                                    </span>
+                                    <>
+                                        <span className="text-xs text-gray-500">•</span>
+                                        <span className="text-xs text-purple-400 truncate max-w-[120px]">
+                                            Admin: {channel.admin.firstName || channel.admin.email}
+                                        </span>
+                                    </>
                                 )}
                             </div>
                         </div>

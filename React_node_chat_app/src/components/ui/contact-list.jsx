@@ -3,6 +3,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "./avatar";
 import { HOST } from "@/utils/constants";
 import { getColor } from "@/lib/utils";
 
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) return `${HOST}${imagePath}`;
+    if (imagePath.startsWith('/api/auth/files/')) return `${HOST}${imagePath}`;
+    return `${HOST}/api/auth/files/${imagePath}`;
+};
+
 const ContactList = ({ contacts, isChannel = false }) => {
     const {
         selectedChatData,
@@ -40,13 +48,7 @@ const ContactList = ({ contacts, isChannel = false }) => {
                         {!isChannel && (
                             <Avatar className="h-12 w-12 rounded-full overflow-hidden">
                                 <AvatarImage
-                                    src={contact.image ? (
-                                        contact.image.startsWith("/uploads/") ? 
-                                        `${HOST}${contact.image}` : 
-                                        contact.image.startsWith("http") ? 
-                                        contact.image : 
-                                        `${HOST}/${contact.image}`
-                                    ) : ""}
+                                    src={getImageUrl(contact.image)}
                                     alt="profile"
                                     className="object-cover w-full h-full bg-black"
                                 />

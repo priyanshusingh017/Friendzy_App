@@ -1,188 +1,226 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import { compare } from "bcrypt";
+import { uploadToGridFS, deleteFromGridFS } from "../config/gridfs.js";
+import { generateFilename } from "../middlewares/uploadMiddleware.js";
 
-const maxAge = 10 * 24 * 60 * 60; // 10 days in seconds
+const maxAge = 3 * 24 * 60 * 60 * 1000;
 
 const createToken = (email, userId) => {
-    return jwt.sign({ email, userId }, process.env.JWT_KEY, { expiresIn: maxAge });
+  return jwt.sign({ email, userId }, process.env.JWT_KEY, {
+    expiresIn: maxAge,
+  });
 };
 
 export const signup = async (request, response, next) => {
-    try {
-        const { email, password } = request.body;
-        if (!email || !password) {
-            return response.status(400).json({ error: "Email and Password are required." });
-        }
-        const user = await User.create({ email, password });
-        
-        const token = createToken(email, user.id);
-        
-        // Updated cookie settings for better compatibility
-        response.cookie("jwt", token, {
-            maxAge: maxAge * 1000,
-            secure: process.env.NODE_ENV === "production", // Only secure in production
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-        });
-        
-        return response.status(201).json({
-            user: {
-                id: user.id,
-                email: user.email,
-                profileSetup: user.profileSetup,
-            },
-        });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ error: "Internal Server Error" });
+  try {
+    const { email, password } = request.body;
+    if (!email || !password) {
+      return response.status(400).send("Email and Password is required");
     }
+    const user = await User.create({ email, password });
+    response.cookie("jwt", createToken(email, user.id), {
+      maxAge,
+      secure: true,
+      sameSite: "None",
+    });
+
+    return response.status(201).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        profileSetup: user.profileSetup,
+      },
+    });
+  } catch (error) {
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
+  }
 };
 
 export const login = async (request, response, next) => {
-    try {
-        const { email, password } = request.body;
-        if (!email || !password) {
-            return response.status(400).json({ error: "Email and Password are required." });
-        }
-        const user = await User.findOne({ email });
-        if (!user) {
-            return response.status(401).json({ error: "Invalid email or password." });
-        }
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return response.status(401).json({ error: "Invalid email or password." });
-        }
-        
-        const token = createToken(user.email, user.id);
-        
-        // Updated cookie settings for better compatibility
-        response.cookie("jwt", token, {
-            maxAge: maxAge * 1000,
-            secure: process.env.NODE_ENV === "production", // Only secure in production
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-        });
-        
-        return response.status(200).json({
-            user: {
-                id: user.id,
-                email: user.email,
-                profileSetup: user.profileSetup,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                image: user.image,
-                color: user.color,
-            },
-        });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ error: "Internal Server Error" });
+  try {
+    const { email, password } = request.body;
+    if (!email || !password) {
+      return response.status(400).send("Email and Password is required");
     }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return response.status(404).send("User not found.");
+    }
+    const auth = await compare(password, user.password);
+    if (!auth) {
+      return response.status(400).send("Password is incorrect.");
+    }
+    response.cookie("jwt", createToken(email, user.id), {
+      maxAge,
+      secure: true,
+      sameSite: "None",
+    });
+
+    return response.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        profileSetup: user.profileSetup,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        image: user.image,
+        color: user.color,
+      },
+    });
+  } catch (error) {
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
+  }
 };
 
 export const getUserInfo = async (request, response, next) => {
-    try {
-        const userId = request.userId;
-        if (!userId) {
-            return response.status(401).json({ error: "User ID is required." });
-        }
-        const user = await User.findById(userId);
-        if (!user) {
-            return response.status(404).json({ error: "User not found." });
-        }
-        return response.status(200).json({
-            id: user.id,
-            email: user.email,
-            profileSetup: user.profileSetup,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            image: user.image,
-            color: user.color,
-        });
-    } catch (error) {
-        console.error("getUserInfo error:", error);
-        return response.status(500).json({ error: "Internal Server Error" });
+  try {
+    const userData = await User.findById(request.userId);
+    if (!userData) {
+      return response.status(404).send("User not found.");
     }
+
+    return response.status(200).json({
+      id: userData.id,
+      email: userData.email,
+      profileSetup: userData.profileSetup,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      image: userData.image,
+      color: userData.color,
+    });
+  } catch (error) {
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
+  }
 };
 
 export const updateProfile = async (request, response, next) => {
-    try {
-        const { userId } = request;
-        const { firstName, lastName, color } = request.body;
-        if (!firstName || !lastName || color === undefined || color === null || isNaN(color) || color < 0) {
-            return response.status(400).json({ error: "Firstname, lastname, and color are required." });
-        }
+  try {
+    const { userId } = request;
+    const { firstName, lastName, color } = request.body;
 
-        const userData = await User.findByIdAndUpdate(userId, {
-            firstName, lastName, color, profileSetup: true
-        }, { new: true, runValidators: true });
-
-        return response.status(200).json({
-            id: userData.id,
-            email: userData.email,
-            profileSetup: userData.profileSetup,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            image: userData.image,
-            color: userData.color,
-        });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ error: "Internal Server Error" });
+    if (!firstName || !lastName) {
+      return response
+        .status(400)
+        .send("Firstname, lastname, and color is required.");
     }
+
+    const userData = await User.findByIdAndUpdate(
+      userId,
+      {
+        firstName,
+        lastName,
+        color,
+        profileSetup: true,
+      },
+      { new: true, runValidators: true }
+    );
+
+    return response.status(200).json({
+      id: userData.id,
+      email: userData.email,
+      profileSetup: userData.profileSetup,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      image: userData.image,
+      color: userData.color,
+    });
+  } catch (error) {
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
+  }
 };
 
-export const addProfileImage = async (req, res) => {
-    try {
-        const userId = req.userId;
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
-        if (!req.file) return res.status(400).json({ error: "No image provided" });
-
-        // Only allow image file types
-        const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/jpg"];
-        if (!allowedTypes.includes(req.file.mimetype)) {
-            return res.status(400).json({ error: "Only image files (jpg, jpeg, png, gif, webp) are allowed." });
-        }
-
-        // Save image path
-        const imageUrl = `/uploads/profiles/${req.file.filename}`;
-        const user = await User.findByIdAndUpdate(userId, { image: imageUrl }, { new: true });
-        if (!user) return res.status(404).json({ error: "User not found" });
-        return res.status(200).json({ image: user.image });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Error uploading image" });
+export const addProfileImage = async (request, response, next) => {
+  try {
+    if (!request.file) {
+      return response.status(400).send("File is required.");
     }
+
+    const userId = request.userId;
+    const user = await User.findById(userId);
+
+    // Delete old profile image from GridFS if exists
+    if (user.image) {
+      try {
+        await deleteFromGridFS(user.image);
+        console.log("✅ Old profile image deleted");
+      } catch (error) {
+        console.log("⚠️ Error deleting old image:", error.message);
+      }
+    }
+
+    // Generate unique filename
+    const filename = generateFilename(request.file.originalname);
+    
+    // Create plain metadata object - convert everything to primitive types
+    const plainMetadata = {
+      userId: String(userId), // Ensure it's a string
+      uploadDate: new Date().toISOString(), // ISO string
+      contentType: String(request.file.mimetype),
+      fileType: 'profile-image'
+    };
+
+    console.log("📝 Metadata:", plainMetadata);
+    
+    // Upload new image to GridFS with plain metadata
+    await uploadToGridFS(filename, request.file.buffer, plainMetadata);
+
+    console.log("✅ Profile image uploaded to GridFS:", filename);
+
+    // Update user with new image filename
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { image: filename },
+      { new: true, runValidators: true }
+    );
+
+    return response.status(200).json({
+      image: updatedUser.image,
+    });
+  } catch (error) {
+    console.log("❌ Error in addProfileImage:", error);
+    return response.status(500).send("Internal Server Error");
+  }
 };
 
-export const removeProfileImage = async (req, res) => {
-    try {
-        const userId = req.userId;
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+export const removeProfileImage = async (request, response, next) => {
+  try {
+    const { userId } = request;
+    const user = await User.findById(userId);
 
-        // Remove image reference from user
-        const user = await User.findByIdAndUpdate(userId, { image: "" }, { new: true });
-        if (!user) return res.status(404).json({ error: "User not found" });
-        return res.status(200).json({ image: user.image });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Error removing image" });
+    if (!user) {
+      return response.status(404).send("User not found.");
     }
+
+    if (user.image) {
+      try {
+        await deleteFromGridFS(user.image);
+        console.log("✅ Profile image deleted from GridFS");
+      } catch (error) {
+        console.log("⚠️ Error deleting image:", error.message);
+      }
+    }
+
+    user.image = null;
+    await user.save();
+
+    return response.status(200).send("Profile image removed successfully.");
+  } catch (error) {
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
+  }
 };
 
-// Logout: clear JWT cookie and respond
 export const logout = async (request, response, next) => {
-    try {
-        response.clearCookie("jwt", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-            path: "/" // Ensure path matches
-        });
-        return response.status(200).json({ message: "Logout successful." });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ error: "Internal Server Error" });
-    }
+  try {
+    response.cookie("jwt", "", { maxAge: 1, secure: true, sameSite: "None" });
+    return response.status(200).send("Logout successful.");
+  } catch (error) {
+    console.log({ error });
+    return response.status(500).send("Internal Server Error");
+  }
 };

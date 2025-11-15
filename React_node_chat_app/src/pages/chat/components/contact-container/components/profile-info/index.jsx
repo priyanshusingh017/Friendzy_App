@@ -5,6 +5,14 @@ import { FiEdit2, FiPower } from "react-icons/fi";
 import apiClient from "@/lib/api_client";
 import { LOGOUT_ROUTE, HOST } from "@/utils/constants";
 
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) return `${HOST}${imagePath}`;
+    if (imagePath.startsWith('/api/auth/files/')) return `${HOST}${imagePath}`;
+    return `${HOST}/api/auth/files/${imagePath}`;
+};
+
 const ProfileInfo = () => {
     const { userInfo, setUserInfo } = useAppStore();
     const color = getColor(userInfo?.color || 0);
@@ -38,11 +46,9 @@ const ProfileInfo = () => {
                 >
                     {userInfo?.image ? (
                         <img
-                            src={userInfo.image.startsWith("/uploads/") ? `${HOST}${userInfo.image}` : userInfo.image}
+                            src={getImageUrl(userInfo.image)}
                             alt={userInfo?.firstName ? `${userInfo.firstName} ${userInfo.lastName || ""}` : "Profile"}
                             className="w-full h-full object-cover rounded-full"
-                            style={{ aspectRatio: "1/1" }}
-                            onError={e => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
                         />
                     ) : (
                         <span aria-label="User Initial">

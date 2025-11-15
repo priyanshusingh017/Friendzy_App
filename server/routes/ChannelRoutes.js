@@ -1,77 +1,46 @@
 import { Router } from "express";
 import multer from "multer";
-import fs from "fs";
-import path from "path";
 import { verifyToken } from "../middlewares/AuthMiddle.js";
 import {
-    createChannel,
-    updateChannel,
-    getUserChannels,
-    getChannelById,
-    getChannelMessages,
-    sendChannelMessage,
-    addChannelMembers,
-    removeChannelMembers,
-    deleteChannel
+  createChannel,
+  getUserChannels,
+  getChannelMessages,
+  updateChannel,
+  deleteChannel,
+  addMembersToChannel,
+  removeMemberFromChannel,
 } from "../controllers/ChannelController.js";
 
 const channelRoutes = Router();
 
-// Setup multer for channel image uploads
-const channelUploadDir = path.join(process.cwd(), "uploads/channels");
-if (!fs.existsSync(channelUploadDir)) {
-    fs.mkdirSync(channelUploadDir, { recursive: true });
-}
-
-const channelStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, channelUploadDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
+// ✅ Configure multer for memory storage to handle image uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  }
 });
 
-const uploadChannelImage = multer({
-    storage: channelStorage,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-    fileFilter: function (req, file, cb) {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'), false);
-        }
-    }
-});
-
-// Create a new channel with optional image upload
-channelRoutes.post("/create", verifyToken, uploadChannelImage.single('image'), createChannel);
-
-// Update channel information (admin only)
-channelRoutes.put("/:channelId", verifyToken, uploadChannelImage.single('image'), updateChannel);
+// Create a new channel
+channelRoutes.post("/create-channel", verifyToken, createChannel);
 
 // Get all channels where user is a member
-channelRoutes.get("/", verifyToken, getUserChannels);
-
-// Get channel details by ID
-channelRoutes.get("/:channelId", verifyToken, getChannelById);
+channelRoutes.get("/get-user-channel", verifyToken, getUserChannels);
 
 // Get messages for a specific channel
-channelRoutes.get("/:channelId/messages", verifyToken, getChannelMessages);
+channelRoutes.get("/get-channel-messages/:channelId", verifyToken, getChannelMessages);
 
-// Send a message to a channel
-channelRoutes.post("/:channelId/messages", verifyToken, sendChannelMessage);
+// ✅ Update channel - accept single image file + text fields
+channelRoutes.put("/:channelId", verifyToken, upload.single('image'), updateChannel);
 
-// Add members to a channel (admin only)
-channelRoutes.post("/:channelId/members", verifyToken, addChannelMembers);
-
-// Remove members from a channel (admin only)
-channelRoutes.delete("/:channelId/members", verifyToken, removeChannelMembers);
-
-// Delete a channel (admin only)
+// Delete channel
 channelRoutes.delete("/:channelId", verifyToken, deleteChannel);
+
+// Add members to channel
+channelRoutes.post("/:channelId/add-members", verifyToken, addMembersToChannel);
+
+// Remove member from channel
+channelRoutes.delete("/:channelId/remove-member", verifyToken, removeMemberFromChannel);
 
 export default channelRoutes;

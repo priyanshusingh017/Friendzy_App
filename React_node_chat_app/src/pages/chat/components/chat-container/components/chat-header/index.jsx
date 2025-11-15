@@ -7,16 +7,23 @@ import { getColor } from '@/lib/utils';
 import { useState } from 'react';
 import ChannelDetails from '@/pages/chat/components/channel-details';
 
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) return `${HOST}${imagePath}`;
+    if (imagePath.startsWith('/api/auth/files/')) return `${HOST}${imagePath}`;
+    return `${HOST}/api/auth/files/${imagePath}`;
+};
+
 const ChatHeader = () => {
     const { closeChat, selectedChatData, selectedChatType, updateChannel } = useAppStore();
     const [showChannelDetails, setShowChannelDetails] = useState(false);
 
     if (!selectedChatData) {
-        return null; // Or render a placeholder/header
+        return null;
     }
 
     const handleChannelUpdate = (updatedChannel) => {
-        // Update the global channels state with the updated channel
         updateChannel(updatedChannel);
         console.log("Channel updated:", updatedChannel);
     };
@@ -33,11 +40,7 @@ const ChatHeader = () => {
                             <Avatar className="h-12 w-12 rounded-full overflow-hidden ring-2 ring-purple-500/20 group-hover:ring-purple-500/40 transition-all duration-300">
                                 {selectedChatData.image ? (
                                     <AvatarImage
-                                        src={
-                                            selectedChatData.image.startsWith("http")
-                                                ? selectedChatData.image
-                                                : `${HOST}/${selectedChatData.image.replace(/^\/+/, "")}`
-                                        }
+                                        src={getImageUrl(selectedChatData.image)}
                                         alt="profile"
                                         className="object-cover w-full h-full bg-black"
                                         onError={e => { e.target.style.display = 'none'; }}
@@ -65,10 +68,7 @@ const ChatHeader = () => {
                                     </div>
                                 )}
                             </Avatar>
-                            {/* Online status indicator for contacts */}
-                            {selectedChatType === "contact" && (
-                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-[#1a1b23] rounded-full animate-pulse"></div>
-                            )}
+                            {/* ✅ Removed online status indicator */}
                         </div>
                         <div className="min-w-0 flex-1">
                             <div className="truncate max-w-[180px] md:max-w-[300px] text-white font-medium text-lg" aria-label="Chat User Name">
@@ -80,16 +80,11 @@ const ChatHeader = () => {
                             </div>
                             {selectedChatType === "channel" && (
                                 <div className="text-sm text-gray-400 flex items-center gap-1">
-                                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                                    {/* ✅ Removed green dot indicator */}
                                     {selectedChatData.members?.length || 0} members
                                 </div>
                             )}
-                            {selectedChatType === "contact" && (
-                                <div className="text-sm text-green-400 flex items-center gap-1">
-                                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                    Online
-                                </div>
-                            )}
+                            {/* ✅ Removed "Online" status text for contacts */}
                         </div>
                     </div>
                     <div className="flex items-center justify-center gap-3">

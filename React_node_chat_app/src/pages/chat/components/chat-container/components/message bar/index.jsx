@@ -41,7 +41,15 @@ const MessageBar = () => {
     };
 
     const handleSendMessage = async () => {
-        if (!message.trim() || !socket || !userInfo || !selectedChatData) return;
+        if (!message.trim() || !socket || !userInfo || !selectedChatData) {
+            console.log("❌ Cannot send message:", { 
+                hasMessage: !!message.trim(), 
+                hasSocket: !!socket, 
+                hasUserInfo: !!userInfo, 
+                hasSelectedChat: !!selectedChatData 
+            });
+            return;
+        }
 
         if (selectedChatType === "contact") {
             socket.emit("sendMessage", {
@@ -53,28 +61,43 @@ const MessageBar = () => {
             });
             setMessage("");
         } else if (selectedChatType === "channel") {
-            // Generate unique optimistic message ID
             const tempId = `optimistic_${userInfo.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             
-            // Add message immediately for optimistic UI update
+            const messageData = {
+                channelId: selectedChatData._id,
+                sender: userInfo.id, // Make sure this is included!
+                content: message,
+                messageType: "text",
+                fileUrl: undefined,
+                optimisticId: tempId,
+            };
+
+            console.log("📤 Sending channel message:", messageData);
+
+            // Add optimistic message
             const optimisticMessage = {
-                sender: { _id: userInfo.id, firstName: userInfo.firstName, lastName: userInfo.lastName },
+                sender: { 
+                    _id: userInfo.id, 
+                    firstName: userInfo.firstName, 
+                    lastName: userInfo.lastName,
+                    email: userInfo.email,
+                    image: userInfo.image,
+                    color: userInfo.color,
+                },
                 content: message,
                 messageType: "text",
                 timestamp: new Date().toISOString(),
-                recipient: selectedChatData._id,
+                channelId: selectedChatData._id,
                 _id: tempId,
-                isOptimistic: true, // Mark as optimistic
+                optimisticId: tempId,
+                isOptimistic: true,
             };
             
             addMessage(optimisticMessage);
             
-            socket.emit("sendChannelMessage", {
-                channelId: selectedChatData._id,
-                sender: userInfo._id,
-                content: message,
-                // ...other fields
-            });
+            // Send to server
+            socket.emit("send-channel-message", messageData);
+            
             setMessage("");
         }
     };
@@ -92,64 +115,68 @@ const MessageBar = () => {
 
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("sender", userInfo.id);
-        formData.append("recipientId", selectedChatData._id); // <-- Correct field name
-
-        // Use relative path in dev (proxy), full URL in prod
-        const uploadUrl = import.meta.env.PROD ? UPLOAD_FILE_ROUTE : '/api/message/upload-file';
 
         try {
             setUploading(true);
-            const response = await apiClient.post("/api/messages/upload-file", formData, {
+            const response = await apiClient.post(UPLOAD_FILE_ROUTE, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
                 withCredentials: true,
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setFileUploadingprogress(percentCompleted);
+                },
             });
+            
             setUploading(false);
             setFileUploadingprogress(0);
 
-            if (response.status === 200 && response.data && response.data.message) {
+            if (response.status === 200 && response.data) {
+                const fileUrl = response.data.filePath || response.data.message?.fileUrl;
+                
                 if (selectedChatType === "contact") {
                     socket.emit("sendMessage", {
                         sender: userInfo.id,
                         recipient: selectedChatData._id,
                         messageType: "file",
-                        fileUrl: response.data.message.fileUrl,
-                        fileName: response.data.message.fileName || file.name,
-                        fileType: response.data.message.fileType || file.type,
-                        content: "",
+                        fileUrl: fileUrl,
+                        content: undefined,
                     });
                 } else if (selectedChatType === "channel") {
-                    // Generate unique optimistic message ID for file
                     const tempId = `optimistic_${userInfo.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     
-                    // Add file message immediately for optimistic UI update
-                    const optimisticFileMessage = {
-                        sender: { _id: userInfo.id, firstName: userInfo.firstName, lastName: userInfo.lastName },
+                    const messageData = {
+                        channelId: selectedChatData._id,
+                        sender: userInfo.id, // Make sure this is included!
                         messageType: "file",
-                        fileUrl: response.data.message.fileUrl,
-                        fileName: response.data.message.fileName || file.name,
-                        fileType: response.data.message.fileType || file.type,
-                        content: "",
+                        fileUrl: fileUrl,
+                        content: undefined,
+                        optimisticId: tempId,
+                    };
+
+                    console.log("📤 Sending channel file message:", messageData);
+                    
+                    // Add optimistic file message
+                    const optimisticFileMessage = {
+                        sender: { 
+                            _id: userInfo.id, 
+                            firstName: userInfo.firstName, 
+                            lastName: userInfo.lastName,
+                            email: userInfo.email,
+                            image: userInfo.image,
+                            color: userInfo.color,
+                        },
+                        messageType: "file",
+                        fileUrl: fileUrl,
                         timestamp: new Date().toISOString(),
-                        recipient: selectedChatData._id,
+                        channelId: selectedChatData._id,
                         _id: tempId,
+                        optimisticId: tempId,
                         isOptimistic: true,
                     };
                     
                     addMessage(optimisticFileMessage);
                     
-                    socket.emit("sendChannelMessage", {
-                        channelId: selectedChatData._id,
-                        message: {
-                            sender: userInfo.id,
-                            messageType: "file",
-                            fileUrl: response.data.message.fileUrl,
-                            fileName: response.data.message.fileName || file.name,
-                            fileType: response.data.message.fileType || file.type,
-                            content: "",
-                        },
-                        optimisticId: tempId, // Send the optimistic ID to server for replacement
-                    });
+                    socket.emit("send-channel-message", messageData);
                 }
             }
         } catch (error) {
@@ -206,7 +233,6 @@ const MessageBar = () => {
                 >
                     <RiEmojiStickerLine className="text-xl" />
                 </button>
-                {/* Emoji Picker: positioned above input, only visible when open */}
                 {emojiPickerOpen && (
                     <div className="absolute z-20 bottom-20 right-4 md:right-8" ref={emojiRef}>
                         <EmojiPicker

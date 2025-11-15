@@ -15,7 +15,7 @@ const ContactContainer = () => {
     useEffect(() => {
         const getContact = async () => {
             try {
-                const response = await apiClient.post(GET_DM_CONTACTS_ROUTES, {}, {
+                const response = await apiClient.get(GET_DM_CONTACTS_ROUTES, { // ✅ Changed from POST to GET
                     withCredentials: true,
                 });
                 if (response.data.contacts) {

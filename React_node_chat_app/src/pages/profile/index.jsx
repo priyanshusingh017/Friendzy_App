@@ -13,6 +13,14 @@ import { UPDATE_PROFILE_ROUTE, ADD_PROFILE_IMAGE_ROUTE, REMOVE_PROFILE_ROUTE, HO
 
 // getColor now imported from utils.js
 
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) return `${HOST}${imagePath}`;
+    if (imagePath.startsWith('/api/auth/files/')) return `${HOST}${imagePath}`;
+    return `${HOST}/api/auth/files/${imagePath}`;
+};
+
 const Profile = () => {
   const navigate = useNavigate();
   const { userInfo, setUserInfo } = useAppStore();
@@ -92,21 +100,21 @@ const Profile = () => {
     }
     const file = event.target.files[0];
     if (!file) return;
-    // Only allow image file types
+    
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/jpg"];
     if (!allowedTypes.includes(file.type)) {
       toast.error("Only image files (jpg, jpeg, png, gif, webp) are allowed.");
       return;
     }
+    
     try {
       const formData = new FormData();
-      formData.append("profile_image", file);
+      formData.append("profile-image", file); // ✅ Changed from "profile_image" to "profile-image"
+      
       const response = await apiClient.post(ADD_PROFILE_IMAGE_ROUTE, formData, {
         withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
       });
+      
       if (response.status === 200 && response.data.image) {
         setUserInfo({ ...userInfo, image: response.data.image });
         setimage(response.data.image);
@@ -192,7 +200,11 @@ const Profile = () => {
             >
               {/* Avatar letter or image */}
               {image ? (
-                <img src={image.startsWith("/uploads/") ? `${HOST}${image}` : image} alt="profile" className="object-cover w-full h-full rounded-full" />
+                <img 
+                    src={getImageUrl(image)} 
+                    alt="profile" 
+                    className="object-cover w-full h-full rounded-full" 
+                />
               ) : (
                 firstname ? firstname[0].toUpperCase() : (userInfo?.email ? userInfo.email[0].toUpperCase() : "A")
               )}
@@ -215,8 +227,8 @@ const Profile = () => {
               ref={fileInputRef}
               className="hidden"
               onChange={handleImageChange}
-              name="avatar"
-              accept="image/*"
+              name="profile-image"
+              accept=".png,.jpg,.jpeg,.svg,.webp,.gif" // ✅ Match the server-side allowed types
             />
           </div>
           <div className="flex flex-col gap-2 w-full max-w-md">
