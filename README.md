@@ -47,12 +47,13 @@ A modern, full-stack real-time chat application built with React, Node.js, Expre
 - 🔐 **Secure authentication** - JWT-based user authentication with HTTP-only cookies
 - 💬 **Direct messaging** - Private one-on-one conversations
 - 📢 **Channel system** - Create and manage group channels
-- 👥 **Channel administration** - Admin controls for channel management
+- 👥 **Channel administration** - Admin controls for channel management (add/remove members, edit details)
 - 📎 **File sharing** - Upload and share images and documents
 - 🖼️ **Profile & Channel Images** - Custom avatars and channel icons stored in GridFS
 - 📜 **Message persistence** - Complete message history stored in MongoDB
 - 🟢 **Online status** - Real-time user presence indicators
 - 🔍 **Contact search** - Find and connect with other users
+- 👤 **Member management** - Add or remove members from channels (Admin only)
 
 ### User Experience
 - 📱 **Fully responsive** - Optimized for mobile, tablet, and desktop
@@ -156,7 +157,7 @@ Chat Application/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/friendzy-chat-app.git
+   git clone https://github.com/priyanshusingh017/friendzy-chat-app.git
    cd "Chat Application"
    ```
 
@@ -243,7 +244,7 @@ Chat Application/
    - Add members
 2. **Manage Channel** (Admin only):
    - Edit channel details
-   - Add/remove members
+   - Add/remove members from channel
    - Update channel icon
    - Delete channel
 
@@ -288,11 +289,13 @@ Chat Application/
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | `/api/channel/create-channel` | Create new channel | Yes |
-| GET | `/api/channel/get-user-channel` | Get user's channels | Yes |
-| GET | `/api/channel/get-channel-messages/:channelId` | Get channel messages | Yes |
-| PATCH | `/api/channel/update-channel/:channelId` | Update channel (Admin) | Yes |
-| DELETE | `/api/channel/delete-channel/:channelId` | Delete channel (Admin) | Yes |
+| POST | `/api/channels/create-channel` | Create new channel | Yes |
+| GET | `/api/channels/get-user-channel` | Get user's channels | Yes |
+| GET | `/api/channels/get-channel-messages/:channelId` | Get channel messages | Yes |
+| PATCH | `/api/channels/update-channel/:channelId` | Update channel (Admin) | Yes |
+| DELETE | `/api/channels/delete-channel/:channelId` | Delete channel (Admin) | Yes |
+| POST | `/api/channels/:channelId/members` | Add members to channel (Admin) | Yes |
+| DELETE | `/api/channels/:channelId/members/:memberId` | Remove member from channel (Admin) | Yes |
 
 ## 🔄 Real-Time Events (Socket.IO)
 
@@ -390,6 +393,7 @@ Chat Application/
 - [ ] Profile images display correctly
 - [ ] Channel images display correctly
 - [ ] Real-time messaging functions
+- [ ] Channel member management works
 - [ ] Environment variables are secure
 
 ## 🔐 Security Features
@@ -399,10 +403,11 @@ Chat Application/
 - **HTTP-Only Cookies**: Prevents XSS attacks
 - **CORS Protection**: Configured allowed origins
 - **Input Validation**: Server-side validation for all inputs
-- **File Upload Security**: Multer configuration with file size limits
+- **File Upload Security**: Multer configuration with file size limits (5MB max)
 - **GridFS Storage**: Secure file storage in MongoDB
 - **Environment Variables**: Sensitive data in .env files
 - **.gitignore**: Prevents committing secrets
+- **Admin-Only Operations**: Channel management restricted to admins
 
 ## 🎨 UI/UX Features
 
@@ -423,6 +428,7 @@ Chat Application/
 - Modal dialogs
 - Tooltips
 - Avatar components with fallbacks
+- Member management UI
 
 ## 🧪 Testing
 
@@ -444,6 +450,7 @@ npm run test
 - **State Management**: Zustand for minimal re-renders
 - **Socket.IO**: Efficient real-time communication
 - **Database Indexing**: MongoDB indexes for fast queries
+- **Lazy Loading**: Images and components loaded on demand
 
 ## 🐛 Troubleshooting
 
@@ -457,7 +464,7 @@ npm run test
 **Images not displaying**
 - Verify GridFS is initialized
 - Check file paths in database
-- Ensure `getImageUrl` function is correct
+- Ensure `GET_FILE_URL` function is correct
 
 **Authentication errors**
 - Check JWT_KEY matches in server
@@ -468,6 +475,11 @@ npm run test
 - Check DATABASE_URL format
 - Verify network access in MongoDB Atlas
 - Ensure database user permissions
+
+**Cannot add members to channel**
+- Verify you are the channel admin
+- Check if members are valid users
+- Ensure `/api/channels/:channelId/members` endpoint is accessible
 
 ## 🤝 Contributing
 
@@ -509,6 +521,8 @@ Contributions are welcome! Please follow these steps:
 - [ ] Multi-language support
 - [ ] Theme customization
 - [ ] Message encryption (E2E)
+- [ ] Channel roles (Moderator, Member)
+- [ ] Message pinning
 
 ## 📄 License
 
@@ -518,7 +532,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Priyanshu Singh**
 - GitHub: [@priyanshusingh017](https://github.com/priyanshusingh017)
-- LinkedIn: [LinkedIn](https://www.linkedin.com/in/priyanshu-singh-00s7)
+- LinkedIn: [Priyanshu Singh](https://www.linkedin.com/in/priyanshu-singh-00s7)
 
 ## 🙏 Acknowledgments
 
@@ -533,9 +547,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 If you encounter any issues or have questions:
-- Open an [Issue](https://github.com/yourusername/friendzy/issues)
-- Check existing [Discussions](https://github.com/yourusername/friendzy/discussions)
-- Read the [Documentation](#)
+- Open an [Issue](https://github.com/priyanshusingh017/friendzy/issues)
+- Check existing [Discussions](https://github.com/priyanshusingh017/friendzy/discussions)
 
 ---
 
