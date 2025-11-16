@@ -5,7 +5,11 @@ import Channel from "./models/channelModel.js";
 const setupSocket = (server) => {
   const io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.ORIGIN,
+      origin: [
+        process.env.ORIGIN,
+        "https://friendzy-app.vercel.app",
+        /https:\/\/friendzy-.*\.vercel\.app$/,
+      ],
       methods: ["GET", "POST"],
       credentials: true,
     },

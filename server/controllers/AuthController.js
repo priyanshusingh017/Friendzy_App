@@ -23,6 +23,7 @@ export const signup = async (request, response, next) => {
       maxAge,
       secure: true,
       sameSite: "None",
+      httpOnly: true, // ✅ Add this
     });
 
     return response.status(201).json({
@@ -40,6 +41,12 @@ export const signup = async (request, response, next) => {
 
 export const login = async (request, response, next) => {
   try {
+    console.log("📝 Login attempt:", {
+      email: request.body.email,
+      hasPassword: !!request.body.password,
+      origin: request.headers.origin,
+    });
+
     const { email, password } = request.body;
     if (!email || !password) {
       return response.status(400).send("Email and Password is required");
@@ -56,6 +63,7 @@ export const login = async (request, response, next) => {
       maxAge,
       secure: true,
       sameSite: "None",
+      httpOnly: true, // ✅ Add this
     });
 
     return response.status(200).json({
@@ -70,7 +78,7 @@ export const login = async (request, response, next) => {
       },
     });
   } catch (error) {
-    console.log({ error });
+    console.error("❌ Login error:", error);
     return response.status(500).send("Internal Server Error");
   }
 };
@@ -155,17 +163,17 @@ export const addProfileImage = async (request, response, next) => {
 
     // Generate unique filename
     const filename = generateFilename(request.file.originalname);
-    
+
     // Create plain metadata object - convert everything to primitive types
     const plainMetadata = {
       userId: String(userId), // Ensure it's a string
       uploadDate: new Date().toISOString(), // ISO string
       contentType: String(request.file.mimetype),
-      fileType: 'profile-image'
+      fileType: "profile-image",
     };
 
     console.log("📝 Metadata:", plainMetadata);
-    
+
     // Upload new image to GridFS with plain metadata
     await uploadToGridFS(filename, request.file.buffer, plainMetadata);
 
@@ -217,7 +225,12 @@ export const removeProfileImage = async (request, response, next) => {
 
 export const logout = async (request, response, next) => {
   try {
-    response.cookie("jwt", "", { maxAge: 1, secure: true, sameSite: "None" });
+    response.cookie("jwt", "", {
+      maxAge: 1,
+      secure: true,
+      sameSite: "None",
+      httpOnly: true, // ✅ Add this
+    });
     return response.status(200).send("Logout successful.");
   } catch (error) {
     console.log({ error });
