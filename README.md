@@ -2,6 +2,23 @@
 
 A modern, full-stack real-time chat application built with React, Node.js, Express, MongoDB, and Socket.IO. Friendzy enables users to engage in seamless real-time messaging, create group channels, share files, and manage their profiles—all within a sleek, responsive interface.
 
+## 📑 Table of Contents
+
+- [Key Highlights](#-key-highlights)
+- [Screenshots](#-screenshots)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Usage Guide](#-usage-guide)
+- [API Documentation](#-api-documentation)
+- [Real-Time Events](#-real-time-events-socketio)
+- [Deployment](#-deployment)
+- [Security Features](#-security-features)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Author](#-author)
+
 ## ✨ Key Highlights
 
 - 🚀 **Production-Ready** - Fully deployable with secure authentication and data storage
