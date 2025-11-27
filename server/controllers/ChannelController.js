@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import Channel from "../models/channelModel.js";
 import User from "../models/userModel.js";
-import { Readable } from "stream";
-import { getGridFSBucket } from "../config/gridfs.js";
+import { uploadToGridFS, deleteFromGridFS } from "../config/gridfs.js"; // ✅ Use helper functions
+import { generateFilename, processImage } from "../middlewares/uploadMiddleware.js"; // ✅ Import helpers
 
 /**
  * Create a new channel
@@ -11,6 +11,8 @@ export const createChannel = async (request, response, next) => {
   try {
     const { name, members } = request.body;
     const userId = request.userId;
+
+    console.log("📝 Creating channel:", { name, membersCount: members?.length });
 
     const admin = await User.findById(userId);
 
@@ -31,9 +33,29 @@ export const createChannel = async (request, response, next) => {
     });
 
     await newChannel.save();
-    return response.status(201).json({ channel: newChannel });
+    console.log("✅ Channel created successfully:", newChannel._id);
+    
+    // ✅ Populate members and admin before returning
+    const populatedChannel = await Channel.findById(newChannel._id)
+      .populate("members", "firstName lastName email _id image color")
+      .populate("admin", "firstName lastName email _id image color");
+    
+    console.log("✅ Populated channel data:", {
+      _id: populatedChannel._id,
+      name: populatedChannel.name,
+      membersCount: populatedChannel.members?.length,
+      members: populatedChannel.members?.map(m => ({
+        id: m._id,
+        name: `${m.firstName} ${m.lastName}`
+      }))
+    });
+    
+    return response.status(201).json({ 
+      success: true,
+      channel: populatedChannel 
+    });
   } catch (error) {
-    console.log({ error });
+    console.error("❌ Create channel error:", error);
     return response.status(500).send("Internal Server Error");
   }
 };
@@ -46,10 +68,9 @@ export const updateChannel = async (request, response, next) => {
     const { channelId } = request.params;
     const userId = request.userId;
 
-    console.log("📝 Raw request body:", request.body);
-    console.log("📝 Request file:", request.file);
-    console.log("📝 Channel ID:", channelId);
-    console.log("📝 User ID:", userId);
+    console.log("📝 Updating channel:", channelId);
+    console.log("📝 Request body:", request.body);
+    console.log("📝 Request file:", request.file ? "Yes" : "No");
 
     if (!mongoose.Types.ObjectId.isValid(channelId)) {
       return response.status(400).send("Invalid channel ID.");
@@ -78,8 +99,7 @@ export const updateChannel = async (request, response, next) => {
       }
     }
 
-    console.log("📝 Parsed data:", { name, description, members, hasFile: !!request.file });
-
+    // Update basic fields
     if (name !== undefined && name !== null && name.trim() !== '') {
       channel.name = name.trim();
       console.log("✅ Updated name to:", channel.name);
@@ -87,7 +107,7 @@ export const updateChannel = async (request, response, next) => {
 
     if (description !== undefined) {
       channel.description = description;
-      console.log("✅ Updated description to:", channel.description);
+      console.log("✅ Updated description");
     }
 
     if (members && Array.isArray(members) && members.length > 0) {
@@ -99,62 +119,71 @@ export const updateChannel = async (request, response, next) => {
       console.log("✅ Updated members count:", members.length);
     }
 
+    // Handle image upload
     if (request.file) {
       try {
-        const bucket = getGridFSBucket();
+        console.log("📸 Processing channel image...");
         
+        // Delete old channel image if exists
         if (channel.image) {
-          const oldFileName = channel.image.split('/').pop();
-          const oldFiles = await bucket.find({ filename: oldFileName }).toArray();
-          if (oldFiles.length > 0) {
-            await bucket.delete(oldFiles[0]._id);
-            console.log("🗑️ Deleted old channel image");
-          }
+          const oldFilename = channel.image.split('/').pop();
+          await deleteFromGridFS(oldFilename);
+          console.log("🗑️ Deleted old channel image");
         }
 
-        const timestamp = Date.now();
-        const filename = `channel_${channelId}_${timestamp}_${request.file.originalname}`;
-        
-        const uploadStream = bucket.openUploadStream(filename, {
-          contentType: request.file.mimetype,
-          metadata: {
-            channelId: channelId,
-            uploadedBy: userId,
-            uploadedAt: new Date()
+        // Process image (if Sharp is available, otherwise use original)
+        let fileBuffer = request.file.buffer;
+        let contentType = request.file.mimetype;
+
+        try {
+          // Try to process image with Sharp
+          if (request.file.mimetype.startsWith('image/')) {
+            fileBuffer = await processImage(request.file.buffer, request.file.mimetype);
+            contentType = 'image/jpeg';
+            console.log("✅ Image processed with Sharp");
           }
-        });
+        } catch (sharpError) {
+          console.warn("⚠️ Sharp processing failed, using original image:", sharpError.message);
+          // Continue with original buffer if Sharp fails
+        }
 
-        const readableStream = Readable.from(request.file.buffer);
+        // Generate unique filename
+        const filename = generateFilename(request.file.originalname);
+
+        // Create metadata
+        const plainMetadata = {
+          channelId: String(channelId),
+          uploadedBy: String(userId),
+          uploadDate: new Date().toISOString(),
+          contentType: String(contentType),
+          fileType: "channel-image"
+        };
+
+        // Upload to GridFS
+        await uploadToGridFS(filename, fileBuffer, plainMetadata);
         
-        await new Promise((resolve, reject) => {
-          readableStream.pipe(uploadStream)
-            .on('finish', resolve)
-            .on('error', reject);
-        });
-
         channel.image = `/api/auth/files/${filename}`;
         console.log("✅ Uploaded new channel image:", filename);
-        console.log("✅ Channel image URL:", channel.image);
       } catch (error) {
         console.error("❌ Failed to upload image:", error);
-        return response.status(500).send("Failed to upload image");
+        // Don't fail the entire update if image upload fails
+        console.warn("⚠️ Continuing without image update");
       }
     }
 
     await channel.save();
     console.log("✅ Channel saved to database");
 
+    // ✅ Always populate members and admin
     const updatedChannel = await Channel.findById(channelId)
       .populate("members", "firstName lastName email _id image color")
       .populate("admin", "firstName lastName email _id image color");
 
     console.log("✅ Channel updated successfully");
-    console.log("✅ Updated channel data:", {
-      _id: updatedChannel._id,
-      name: updatedChannel.name,
-      image: updatedChannel.image,
-      description: updatedChannel.description
-    });
+    console.log("✅ Populated members:", updatedChannel.members?.map(m => ({
+      id: m._id,
+      name: `${m.firstName} ${m.lastName}`
+    })));
     
     return response.status(200).json({ 
       success: true,
@@ -250,13 +279,9 @@ export const deleteChannel = async (request, response, next) => {
     // Delete channel image from GridFS if exists
     if (channel.image) {
       try {
-        const bucket = getGridFSBucket();
         const filename = channel.image.split('/').pop();
-        const files = await bucket.find({ filename }).toArray();
-        if (files.length > 0) {
-          await bucket.delete(files[0]._id);
-          console.log("🗑️ Deleted channel image from GridFS");
-        }
+        await deleteFromGridFS(filename);
+        console.log("🗑️ Deleted channel image from GridFS");
       } catch (error) {
         console.error("Failed to delete channel image:", error);
       }

@@ -1,6 +1,6 @@
 import Message from "../models/MessagesModel.js";
 import { uploadToGridFS } from "../config/gridfs.js";
-import { generateFilename } from "../middlewares/uploadMiddleware.js";
+import { generateFilename, processImage } from "../middlewares/uploadMiddleware.js"; // ✅ Import processImage
 
 export const getMessages = async (request, response, next) => {
   try {
@@ -36,23 +36,33 @@ export const uploadFile = async (request, response, next) => {
 
     console.log("📤 Uploading file:", file.originalname);
 
+    // ✅ Process image if it's an image file
+    let fileBuffer = file.buffer;
+    let contentType = file.mimetype;
+
+    if (file.mimetype.startsWith('image/')) {
+      fileBuffer = await processImage(file.buffer, file.mimetype);
+      contentType = 'image/jpeg'; // Sharp converts to JPEG
+      console.log("✅ Image processed and orientation corrected");
+    }
+
     // Generate unique filename
     const filename = generateFilename(file.originalname);
     
-    // Create plain metadata object - convert everything to primitive types
+    // Create plain metadata object
     const plainMetadata = {
-      userId: String(request.userId), // Ensure it's a string
-      uploadDate: new Date().toISOString(), // ISO string
-      contentType: String(file.mimetype),
+      userId: String(request.userId),
+      uploadDate: new Date().toISOString(),
+      contentType: String(contentType),
       originalName: String(file.originalname),
-      fileSize: Number(file.size),
+      fileSize: Number(fileBuffer.length), // ✅ Use processed buffer length
       fileType: 'message-attachment'
     };
 
     console.log("📝 Metadata:", plainMetadata);
     
-    // Upload to GridFS with plain metadata
-    await uploadToGridFS(filename, file.buffer, plainMetadata);
+    // Upload to GridFS with processed buffer
+    await uploadToGridFS(filename, fileBuffer, plainMetadata);
 
     console.log("✅ File uploaded to GridFS:", filename);
 

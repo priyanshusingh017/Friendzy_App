@@ -13,7 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import apiClient from "@/lib/api_client";
-import { HOST, GET_ALL_CONTACTS_ROUTE } from "@/utils/constants";
+import { 
+    HOST, 
+    GET_ALL_CONTACTS_ROUTE,
+    UPDATE_CHANNEL_ROUTE,
+    DELETE_CHANNEL_ROUTE,
+    ADD_CHANNEL_MEMBERS_ROUTE,
+    REMOVE_CHANNEL_MEMBER_ROUTE // ✅ Add this import
+} from "@/utils/constants";
 import { useAppStore } from "@/store";
 
 const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
@@ -52,12 +59,17 @@ const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
                 formData.append('image', channelImage);
             }
 
-            const response = await apiClient.put(`/api/channels/${channel._id}`, formData, {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            // ✅ Use the constant
+            const response = await apiClient.put(
+                UPDATE_CHANNEL_ROUTE(channel._id),
+                formData,
+                {
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
 
             if (response.data.success) {
                 onUpdate(response.data.channel);
@@ -70,29 +82,40 @@ const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
         }
     };
 
+    // ✅ FIXED: Use URL parameter instead of request body
     const handleRemoveMember = async (memberId) => {
         try {
-            const response = await apiClient.delete(`/api/channels/${channel._id}/members`, {
-                data: { members: [memberId] },
-                withCredentials: true,
-            });
+            console.log("🗑️ Removing member:", memberId, "from channel:", channel._id);
+            
+            const response = await apiClient.delete(
+                REMOVE_CHANNEL_MEMBER_ROUTE(channel._id, memberId),
+                { withCredentials: true }
+            );
+
+            console.log("✅ Member removed successfully:", response.data);
 
             if (response.data.success) {
                 onUpdate(response.data.channel);
             }
         } catch (error) {
-            console.error("Failed to remove member:", error);
+            console.error("❌ Failed to remove member:", error);
+            console.error("Error details:", error.response?.data);
         }
     };
 
     const handleAddMembers = async () => {
         try {
             const memberIds = selectedNewMembers.map(contact => contact.id || contact._id);
-            const response = await apiClient.post(`/api/channels/${channel._id}/members`, {
-                members: memberIds
-            }, {
-                withCredentials: true,
-            });
+            console.log("➕ Adding members:", memberIds);
+            
+            // ✅ Use the constant
+            const response = await apiClient.post(
+                ADD_CHANNEL_MEMBERS_ROUTE(channel._id),
+                { members: memberIds },
+                { withCredentials: true }
+            );
+
+            console.log("✅ Members added successfully:", response.data);
 
             if (response.data.success) {
                 onUpdate(response.data.channel);
@@ -100,24 +123,31 @@ const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
                 setSelectedNewMembers([]);
             }
         } catch (error) {
-            console.error("Failed to add members:", error);
+            console.error("❌ Failed to add members:", error);
+            console.error("Error details:", error.response?.data);
         }
     };
 
     const handleDeleteChannel = async () => {
         if (window.confirm("Are you sure you want to delete this channel? This action cannot be undone.")) {
             try {
-                const response = await apiClient.delete(`/api/channels/${channel._id}`, {
-                    withCredentials: true,
-                });
+                console.log("🗑️ Deleting channel:", channel._id);
+                
+                // ✅ Use the constant
+                const response = await apiClient.delete(
+                    DELETE_CHANNEL_ROUTE(channel._id),
+                    { withCredentials: true }
+                );
 
-                if (response.data.success) {
-                    // Remove channel from global state
+                console.log("✅ Channel deleted successfully");
+
+                if (response.status === 200) {
                     removeChannel(channel._id);
                     onClose();
                 }
             } catch (error) {
-                console.error("Failed to delete channel:", error);
+                console.error("❌ Failed to delete channel:", error);
+                console.error("Error details:", error.response?.data);
             }
         }
     };
@@ -191,7 +221,7 @@ const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
                                 {channelImagePreview ? (
                                     <AvatarImage src={channelImagePreview} alt="Channel" />
                                 ) : channel.image ? (
-                                    <AvatarImage src={`${HOST}/${channel.image}`} alt="Channel" />
+                                    <AvatarImage src={`${HOST}${channel.image}`} alt="Channel" />
                                 ) : (
                                     <AvatarFallback className="bg-purple-600 text-white text-5xl sm:text-6xl">
                                         👥
@@ -292,7 +322,7 @@ const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
                                             }}
                                         >
                                             <Avatar className="h-8 w-8 flex-shrink-0">
-                                                <AvatarImage src={contact.image ? `${HOST}/${contact.image}` : ""} />
+                                                <AvatarImage src={contact.image ? `${HOST}${contact.image}` : ""} />
                                                 <AvatarFallback className="bg-gray-600 text-white text-xs">
                                                     {contact.firstName?.[0]?.toUpperCase() || 'U'}
                                                 </AvatarFallback>
@@ -324,7 +354,7 @@ const ChannelDetails = ({ channel, isOpen, onClose, onUpdate }) => {
                                 >
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <Avatar className="h-10 w-10 flex-shrink-0">
-                                            <AvatarImage src={member.image ? `${HOST}/${member.image}` : ""} />
+                                            <AvatarImage src={member.image ? `${HOST}${member.image}` : ""} />
                                             <AvatarFallback className="bg-gray-600 text-white text-sm">
                                                 {member.firstName?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase() || 'U'}
                                             </AvatarFallback>

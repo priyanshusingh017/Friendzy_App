@@ -43,7 +43,7 @@ const MessageContainer = () => {
         const getChannelMessages = async () => {
             try {
                 const response = await apiClient.get(
-                    `${GET_CHANNEL_MESSAGES_ROUTE}/${selectedChatData._id}`, // ✅ Fixed - use template string directly
+                    `${GET_CHANNEL_MESSAGES_ROUTE}/${selectedChatData._id}`,
                     { withCredentials: true }
                 );
                 console.log("📥 Fetched channel messages:", response.data);
@@ -75,18 +75,13 @@ const MessageContainer = () => {
         return imageRegex.test(filePath);
     };
 
-    // Helper function to get correct file URL
     const getFileUrl = (fileUrl) => {
         if (!fileUrl) return null;
-        // If it's already a full URL, return it
         if (fileUrl.startsWith('http')) return fileUrl;
-        // If it starts with /api/auth/files/, return with HOST
         if (fileUrl.startsWith('/api/auth/files/')) return `${HOST}${fileUrl}`;
-        // Otherwise, construct the correct path
         return `${HOST}/api/auth/files/${fileUrl}`;
     };
 
-    // Add this helper function for user images
     const getUserImageUrl = (imagePath) => {
         if (!imagePath) return null;
         if (imagePath.startsWith('http')) return imagePath;
@@ -215,7 +210,7 @@ const MessageContainer = () => {
                             <div 
                                 className={`h-10 w-10 rounded-full flex items-center justify-center text-lg font-semibold ${
                                     senderImage ? 'hidden' : 'flex'
-                            }`}
+                                }`}
                                 style={{ backgroundColor: senderColor }}
                             >
                                 {message.sender?.firstName
@@ -241,7 +236,7 @@ const MessageContainer = () => {
                                     {message.content}
                                 </div>
                             ) : (
-                                <div className="bg-[#2a2b33] text-white/90 border border-white/10 p-3 rounded-lg">
+                                <div className="bg-[#2a2b33] text-white/90 border border-white/10 rounded-lg overflow-hidden">
                                     {checkIfImage(message.fileUrl) ? (
                                         <div
                                             className="cursor-pointer"
@@ -253,15 +248,16 @@ const MessageContainer = () => {
                                             <img
                                                 src={getFileUrl(message.fileUrl)}
                                                 alt="attachment"
-                                                className="max-w-xs rounded"
+                                                className="w-full h-auto max-w-sm object-cover rounded-lg"
+                                                style={{ maxHeight: '400px' }}
                                             />
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 p-3">
                                             <span className="text-white/80 text-3xl bg-black/20 rounded-full p-3">
                                                 <MdFolderZip />
                                             </span>
-                                            <span className="text-sm">{message.fileUrl?.split("/").pop()}</span>
+                                            <span className="text-sm flex-1 truncate">{message.fileUrl?.split("/").pop()}</span>
                                             <span
                                                 className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
                                                 onClick={() => downloadFile(getFileUrl(message.fileUrl))}
@@ -288,7 +284,7 @@ const MessageContainer = () => {
                                 {message.content}
                             </div>
                         ) : (
-                            <div className="bg-[#8417ff]/20 text-white/90 border border-[#8417ff]/50 p-3 rounded-lg">
+                            <div className="bg-[#8417ff]/20 text-white/90 border border-[#8417ff]/50 rounded-lg overflow-hidden">
                                 {checkIfImage(message.fileUrl) ? (
                                     <div
                                         className="cursor-pointer"
@@ -300,15 +296,16 @@ const MessageContainer = () => {
                                         <img
                                             src={getFileUrl(message.fileUrl)}
                                             alt="attachment"
-                                            className="max-w-xs rounded"
+                                            className="w-full h-auto max-w-sm object-cover rounded-lg"
+                                            style={{ maxHeight: '400px' }}
                                         />
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 p-3">
                                         <span className="text-white/80 text-3xl bg-black/20 rounded-full p-3">
                                             <MdFolderZip />
                                         </span>
-                                        <span className="text-sm">{message.fileUrl?.split("/").pop()}</span>
+                                        <span className="text-sm flex-1 truncate">{message.fileUrl?.split("/").pop()}</span>
                                         <span
                                             className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
                                             onClick={() => downloadFile(getFileUrl(message.fileUrl))}
@@ -328,7 +325,6 @@ const MessageContainer = () => {
     const renderMessages = () => {
         let lastDate = null;
 
-        // Remove duplicates and optimistic messages
         const uniqueMessages = selectedChatMessages.reduce((acc, message) => {
             const messageId = message._id;
             const optimisticId = message.optimisticId;
@@ -350,7 +346,6 @@ const MessageContainer = () => {
             return acc;
         }, []);
 
-        // Sort by timestamp
         uniqueMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
         return uniqueMessages.map((message, index) => {
@@ -395,23 +390,23 @@ const MessageContainer = () => {
                 </>
             )}
             {showImage && (
-                <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-lg flex-col">
-                    <div>
+                <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-lg flex-col bg-black/80">
+                    <div className="relative max-w-[90vw] max-h-[90vh]">
                         <img
                             src={getFileUrl(imageURL)}
-                            className="h-[80vh] w-full bg-cover"
+                            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
                             alt="preview"
                         />
                     </div>
                     <div className="flex gap-5 fixed top-0 mt-5">
                         <button
-                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300 text-white"
                             onClick={() => downloadFile(imageURL)}
                         >
                             <IoMdArrowRoundDown />
                         </button>
                         <button
-                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                            className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300 text-white"
                             onClick={() => {
                                 setShowImage(false);
                                 setImageURL(null);

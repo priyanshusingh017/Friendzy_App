@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import sharp from "sharp"; 
 
 // Use memory storage to upload files to GridFS instead of disk
 const storage = multer.memoryStorage();
@@ -12,7 +13,7 @@ export const upload = multer({
   fileFilter: (req, file, cb) => {
     // Allow common file types
     const allowedTypes =
-      /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mp3|wav|avi|mov|webp|svg/; // ✅ Added svg
+      /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mp3|wav|avi|mov|webp|svg/;
     const extname = allowedTypes.test(
       path.extname(file.originalname).toLowerCase()
     );
@@ -34,4 +35,17 @@ export const generateFilename = (originalname) => {
   const randomString = Math.random().toString(36).substring(2, 15);
   const ext = path.extname(originalname);
   return `${timestamp}-${randomString}${ext}`;
+};
+
+// ✅ Temporary: Return buffer as-is without processing
+export const processImage = async (buffer, mimetype) => {
+  try {
+    // For now, just return the original buffer
+    // TODO: Add Sharp processing once installed
+    console.log('⚠️ Image processing disabled - Sharp not installed');
+    return buffer;
+  } catch (error) {
+    console.error("⚠️ Error processing image:", error);
+    return buffer;
+  }
 };

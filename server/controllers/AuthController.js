@@ -2,7 +2,7 @@ import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import { compare } from "bcrypt";
 import { uploadToGridFS, deleteFromGridFS } from "../config/gridfs.js";
-import { generateFilename } from "../middlewares/uploadMiddleware.js";
+import { generateFilename, processImage } from "../middlewares/uploadMiddleware.js"; // ✅ Import processImage
 
 const maxAge = 3 * 24 * 60 * 60 * 1000;
 
@@ -23,7 +23,7 @@ export const signup = async (request, response, next) => {
       maxAge,
       secure: true,
       sameSite: "None",
-      httpOnly: true, // ✅ Add this
+      httpOnly: true,
     });
 
     return response.status(201).json({
@@ -63,7 +63,7 @@ export const login = async (request, response, next) => {
       maxAge,
       secure: true,
       sameSite: "None",
-      httpOnly: true, // ✅ Add this
+      httpOnly: true,
     });
 
     return response.status(200).json({
@@ -161,21 +161,24 @@ export const addProfileImage = async (request, response, next) => {
       }
     }
 
+    // ✅ Process image to fix orientation
+    const processedBuffer = await processImage(request.file.buffer, request.file.mimetype);
+
     // Generate unique filename
     const filename = generateFilename(request.file.originalname);
 
-    // Create plain metadata object - convert everything to primitive types
+    // Create plain metadata object
     const plainMetadata = {
-      userId: String(userId), // Ensure it's a string
-      uploadDate: new Date().toISOString(), // ISO string
-      contentType: String(request.file.mimetype),
+      userId: String(userId),
+      uploadDate: new Date().toISOString(),
+      contentType: "image/jpeg", // ✅ Sharp converts to JPEG
       fileType: "profile-image",
     };
 
-    console.log("📝 Metadata:", plainMetadata);
+    console.log("📝 Uploading profile image:", filename);
 
-    // Upload new image to GridFS with plain metadata
-    await uploadToGridFS(filename, request.file.buffer, plainMetadata);
+    // Upload processed image to GridFS
+    await uploadToGridFS(filename, processedBuffer, plainMetadata);
 
     console.log("✅ Profile image uploaded to GridFS:", filename);
 
@@ -229,7 +232,7 @@ export const logout = async (request, response, next) => {
       maxAge: 1,
       secure: true,
       sameSite: "None",
-      httpOnly: true, // ✅ Add this
+      httpOnly: true,
     });
     return response.status(200).send("Logout successful.");
   } catch (error) {

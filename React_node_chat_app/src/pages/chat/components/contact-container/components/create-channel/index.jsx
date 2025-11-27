@@ -15,7 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import apiClient from "@/lib/api_client";
-import { HOST, GET_ALL_CONTACTS_ROUTE, CREATE_CHANNEL_ROUTE, SEARCH_CONTACTS_ROUTES } from "@/utils/constants";
+import { 
+    HOST, 
+    GET_ALL_CONTACTS_ROUTE, 
+    CREATE_CHANNEL_ROUTE, 
+    UPDATE_CHANNEL_ROUTE // ✅ Add this import
+} from "@/utils/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppStore } from "@/store";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -44,9 +49,8 @@ const CreateChannel = () => {
                     withCredentials: true,
                 });
                 const contacts = response.data.contacts || [];
-                console.log("Fetched contacts:", contacts); // Debug log
+                console.log("Fetched contacts:", contacts);
                 setAllContacts(contacts);
-                // Set filtered contacts immediately to show all contacts initially
                 setFilteredContacts(contacts);
             } catch (error) {
                 console.error("Failed to fetch contacts:", error);
@@ -58,7 +62,6 @@ const CreateChannel = () => {
         };
         
         if (newChannelModal) {
-            // Reset everything when modal opens
             setSearchTerm("");
             setSelectedContacts([]);
             setChannelName("");
@@ -68,9 +71,7 @@ const CreateChannel = () => {
         }
     }, [newChannelModal]);
 
-    // Handle search functionality
     useEffect(() => {
-        console.log("Search effect - searchTerm:", searchTerm, "allContacts:", allContacts.length); // Debug log
         if (!searchTerm || searchTerm.trim() === "") {
             setFilteredContacts(allContacts);
         } else {
@@ -80,13 +81,11 @@ const CreateChannel = () => {
                 const email = (contact.email || '').toLowerCase();
                 return fullName.includes(searchLower) || email.includes(searchLower);
             });
-            console.log("Filtered results:", searchResults.length); // Debug log
             setFilteredContacts(searchResults);
         }
     }, [searchTerm, allContacts]);
 
     const handleContactSelect = useCallback((contact) => {
-        // Prevent rapid clicking issues
         if (isSelecting) return;
         
         const contactId = contact.id || contact._id;
@@ -97,17 +96,14 @@ const CreateChannel = () => {
         setSelectedContacts(prev => {
             const isSelected = prev.some(c => (c.id || c._id) === contactId);
             if (isSelected) {
-                // Remove contact
                 return prev.filter(c => (c.id || c._id) !== contactId);
             } else {
-                // Add contact (prevent duplicates)
                 const alreadyExists = prev.some(c => (c.id || c._id) === contactId);
                 if (alreadyExists) return prev;
                 return [...prev, contact];
             }
         });
         
-        // Reset selecting state after a short delay
         setTimeout(() => setIsSelecting(false), 200);
     }, [isSelecting]);
 
@@ -144,34 +140,97 @@ const CreateChannel = () => {
 
     const handleCreateChannel = async () => {
         try {
-            const memberIds = selectedContacts.map(contact => contact.id || contact._id);
-            
-            // Create FormData for file upload
-            const formData = new FormData();
-            formData.append('name', channelName);
-            formData.append('members', JSON.stringify(memberIds));
-            
-            if (channelImage) {
-                formData.append('image', channelImage);
+            // Validate inputs
+            if (!channelName.trim()) {
+                alert("Channel name is required");
+                return;
             }
 
-            const response = await apiClient.post(CREATE_CHANNEL_ROUTE, formData, {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            if (selectedContacts.length === 0) {
+                alert("At least one member is required");
+                return;
+            }
+
+            const memberIds = selectedContacts.map(contact => contact.id || contact._id);
             
-            if (response.data.success) {
-                // Add the new channel to the global state immediately
-                addChannel(response.data.channel);
+            console.log("📝 Creating channel:", {
+                name: channelName,
+                memberIds: memberIds,
+                hasImage: !!channelImage
+            });
+
+            // ✅ Create channel without image first
+            const response = await apiClient.post(
+                CREATE_CHANNEL_ROUTE,
+                {
+                    name: channelName.trim(),
+                    members: memberIds,
+                },
+                { withCredentials: true }
+            );
+            
+            console.log("✅ Channel created:", response.data);
+
+            if (response.status === 201 && response.data.channel) {
+                let finalChannel = response.data.channel;
+
+                console.log("✅ Created channel members:", finalChannel.members?.map(m => ({
+                    id: m._id,
+                    name: `${m.firstName} ${m.lastName}`
+                })));
+
+                // ✅ If image was uploaded, update the channel with the image
+                if (channelImage) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('image', channelImage);
+                        
+                        console.log("📸 Uploading channel image...");
+                        
+                        const updateResponse = await apiClient.put(
+                            UPDATE_CHANNEL_ROUTE(response.data.channel._id),
+                            formData,
+                            {
+                                withCredentials: true,
+                                headers: {
+                                    'Content-Type': 'multipart/form-data',
+                                },
+                            }
+                        );
+                        
+                        if (updateResponse.data.success) {
+                            console.log("✅ Channel image updated");
+                            finalChannel = updateResponse.data.channel;
+                            
+                            console.log("✅ Updated channel members:", finalChannel.members?.map(m => ({
+                                id: m._id,
+                                name: `${m.firstName} ${m.lastName}`
+                            })));
+                        }
+                    } catch (imageError) {
+                        console.error("⚠️ Failed to upload channel image:", imageError);
+                        // Channel was created, just image upload failed - continue
+                    }
+                }
+                
+                // ✅ Verify members are populated before adding to store
+                console.log("✅ Final channel data before adding to store:", {
+                    id: finalChannel._id,
+                    name: finalChannel.name,
+                    membersCount: finalChannel.members?.length,
+                    firstMember: finalChannel.members?.[0]
+                });
+                
+                // Add the final channel to the store
+                addChannel(finalChannel);
                 
                 setNewChannelModal(false);
                 resetForm();
-                console.log("Channel created successfully:", response.data.channel);
             }
         } catch (error) {
-            console.error("Failed to create channel:", error);
+            console.error("❌ Failed to create channel:", error);
+            console.error("Error details:", error.response?.data);
+            alert(`Failed to create channel: ${error.response?.data || error.message}`);
         }
     };
 
@@ -275,12 +334,11 @@ const CreateChannel = () => {
                         <div className="mb-2 flex-shrink-0">
                             <p className="text-xs mb-1.5 text-gray-300">
                                 Selected: {selectedContacts.length}
-                                {isSelecting && <span className="ml-2 text-purple-400">●</span>}
                             </p>
                             <div className="flex flex-wrap gap-1 max-h-10 overflow-y-auto">
                                 {selectedContacts.map(contact => (
                                     <Badge 
-                                        key={`selected-${contact.id || contact._id || contact.email}`}
+                                        key={`selected-${contact.id || contact._id}`}
                                         className="bg-purple-700 flex items-center gap-1 px-1.5 py-0.5 text-xs"
                                     >
                                         <span className="truncate max-w-16 sm:max-w-20">
@@ -299,7 +357,6 @@ const CreateChannel = () => {
                                                 }
                                             }}
                                             size={10}
-                                            title="Remove contact"
                                         />
                                     </Badge>
                                 ))}
@@ -309,8 +366,8 @@ const CreateChannel = () => {
 
                     {/* Contacts List */}
                     <div className="flex-1 overflow-hidden mb-3">
-                        <p className="text-xs text-gray-400 mb-1.5 flex-shrink-0">All contacts ({filteredContacts.length})</p>
-                        <ScrollArea className="h-full min-h-0 border border-gray-700 rounded-lg bg-[#2c2e3b]">
+                        <p className="text-xs text-gray-400 mb-1.5">All contacts ({filteredContacts.length})</p>
+                        <ScrollArea className="h-full border border-gray-700 rounded-lg bg-[#2c2e3b]">
                             <div className="p-1.5">
                             {isLoading ? (
                                 <div className="text-center text-gray-400 mt-6">
@@ -318,77 +375,37 @@ const CreateChannel = () => {
                                 </div>
                             ) : filteredContacts.length === 0 ? (
                                 <div className="text-center text-gray-400 mt-6">
-                                    {searchTerm && searchTerm.trim() !== "" 
-                                        ? "No contacts found matching your search." 
-                                        : "No contacts found. Make sure you have contacts added."
-                                    }
+                                    {searchTerm ? "No contacts found." : "No contacts available."}
                                 </div>
                             ) : (
-                                <>
-                                    <div className="text-xs text-gray-500 mb-1.5 px-1">
-                                        {searchTerm ? `${filteredContacts.length} contacts found` : `All contacts (${filteredContacts.length})`}
-                                    </div>
-                                    {filteredContacts.map(contact => {
-                                        console.log("Contact data:", contact); // Debug log
-                                        return (
-                                            <div
-                                                key={contact.id || contact._id || contact.email || `${contact.firstName}-${contact.lastName}`}
-                                                className={`flex items-center gap-2 p-1.5 sm:p-2 hover:bg-[#23242a] rounded mb-0.5 cursor-pointer transition-all duration-200 ${
-                                                    selectedContacts.some(c => (c.id || c._id) === (contact.id || contact._id))
-                                                        ? "bg-purple-900"
-                                                        : ""
-                                                } ${isSelecting ? "pointer-events-none" : ""}`}
-                                                onClick={() => {
-                                                    if (!isSelecting) {
-                                                        handleContactSelect(contact);
-                                                    }
-                                                }}
-                                                role="button"
-                                                tabIndex={0}
-                                                onKeyDown={(e) => {
-                                                    if ((e.key === 'Enter' || e.key === ' ') && !isSelecting) {
-                                                        e.preventDefault();
-                                                        handleContactSelect(contact);
-                                                    }
-                                                }}
-                                            >
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage 
-                                                        src={contact.image ? (
-                                                            contact.image.startsWith("/uploads/") ? 
-                                                            `${HOST}${contact.image}` : 
-                                                            contact.image.startsWith("http") ? 
-                                                            contact.image : 
-                                                            `${HOST}/${contact.image}`
-                                                        ) : ""} 
-                                                        alt={`${contact.firstName} ${contact.lastName}`}
-                                                        className="object-cover w-full h-full"
-                                                        onError={() => console.log("Failed to load image:", contact.image, "Full URL:", contact.image ? (
-                                                            contact.image.startsWith("/uploads/") ? 
-                                                            `${HOST}${contact.image}` : 
-                                                            contact.image.startsWith("http") ? 
-                                                            contact.image : 
-                                                            `${HOST}/${contact.image}`
-                                                        ) : "")}
-                                                    />
-                                                    <AvatarFallback className="bg-purple-600 text-white font-bold text-xs">
-                                                        {contact.firstName ? contact.firstName[0].toUpperCase() : 
-                                                         contact.lastName ? contact.lastName[0].toUpperCase() : 
-                                                         contact.email ? contact.email[0].toUpperCase() : 'U'}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium text-white text-sm truncate">
-                                                        {contact.firstName || 'Unknown'} {contact.lastName || ''}
-                                                    </div>
-                                                    <div className="text-xs text-gray-400 truncate">
-                                                        {contact.email}
-                                                    </div>
-                                                </div>
+                                filteredContacts.map(contact => (
+                                    <div
+                                        key={contact.id || contact._id}
+                                        className={`flex items-center gap-2 p-1.5 sm:p-2 hover:bg-[#23242a] rounded mb-0.5 cursor-pointer transition-all ${
+                                            selectedContacts.some(c => (c.id || c._id) === (contact.id || contact._id))
+                                                ? "bg-purple-900"
+                                                : ""
+                                        }`}
+                                        onClick={() => handleContactSelect(contact)}
+                                    >
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage 
+                                                src={contact.image ? `${HOST}${contact.image}` : ""} 
+                                            />
+                                            <AvatarFallback className="bg-purple-600 text-white text-xs">
+                                                {contact.firstName?.[0]?.toUpperCase() || 'U'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate">
+                                                {contact.firstName} {contact.lastName}
                                             </div>
-                                        );
-                                    })}
-                                </>
+                                            <div className="text-xs text-gray-400 truncate">
+                                                {contact.email}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
                             )}
                             </div>
                         </ScrollArea>
@@ -397,9 +414,9 @@ const CreateChannel = () => {
                     {/* Create Channel Button */}
                     <div className="flex-shrink-0 pt-3 border-t border-gray-700">
                         <Button
-                            className="w-full bg-purple-700 hover:bg-purple-900 transition-all duration-300 py-2 sm:py-3 text-sm sm:text-base"
+                            className="w-full bg-purple-700 hover:bg-purple-900 transition-all py-2 sm:py-3"
                             onClick={handleCreateChannel}
-                            disabled={!channelName || selectedContacts.length === 0}
+                            disabled={!channelName.trim() || selectedContacts.length === 0}
                         >
                             Create Channel
                         </Button>

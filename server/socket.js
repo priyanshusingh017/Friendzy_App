@@ -49,15 +49,13 @@ const setupSocket = (server) => {
     try {
       console.log("📩 Received channel message data:", data);
 
-      // Validate required fields
       if (!data || !data.channelId || !data.sender) {
         console.error("❌ Missing required fields:", { data });
         return;
       }
 
-      const { channelId, sender, content, messageType, fileUrl, optimisticId } = data;
+      const { channelId, sender, content, messageType, fileUrl } = data;
 
-      // Create message in database
       const createdMessage = await Message.create({
         sender,
         recipient: null,
@@ -69,27 +67,35 @@ const setupSocket = (server) => {
 
       console.log("✅ Message created in DB:", createdMessage._id);
 
-      // Populate sender information with all required fields
       const messageData = await Message.findById(createdMessage._id)
         .populate("sender", "_id id email firstName lastName image color")
         .exec();
 
       console.log("✅ Populated message sender:", messageData.sender);
 
-      // Add message to channel
       const channel = await Channel.findById(channelId);
       if (channel) {
         channel.messages.push(createdMessage._id);
         await channel.save();
         console.log("✅ Message added to channel");
 
-        // Emit to all channel members
-        channel.members.forEach((memberId) => {
-          const memberSocketId = userSocketMap.get(memberId.toString());
+        // ✅ Include admin in the broadcast
+        const allMembers = [...channel.members.map((m) => m.toString()), channel.admin.toString()];
+        const uniqueMembers = [...new Set(allMembers)];
+
+        console.log(`📤 Broadcasting to ${uniqueMembers.length} members (including admin)`);
+
+        uniqueMembers.forEach((memberId) => {
+          const memberSocketId = userSocketMap.get(memberId);
           if (memberSocketId) {
+            console.log(`✅ Sending to ${memberId}`);
             io.to(memberSocketId).emit("receive-channel-message", messageData);
+          } else {
+            console.log(`⚠️ ${memberId} is offline`);
           }
         });
+
+        console.log("✅ Broadcast complete");
       }
     } catch (error) {
       console.error("❌ Error in sendChannelMessage:", error);
